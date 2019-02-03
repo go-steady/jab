@@ -1,16 +1,12 @@
 from __future__ import annotations
 
-import sys
 from inspect import isclass, isfunction
 from typing import Any, Dict, Optional
 
 import toposort
 from typing_extensions import Protocol, _get_protocol_attrs  # type: ignore
 
-if "pytest" in sys.modules:
-    from .exceptions import NoAnnotation, NoConstructor
-else:
-    from harness.exceptions import NoAnnotation, NoConstructor  # type: ignore
+from jab.exceptions import NoAnnotation, NoConstructor
 
 
 class Harness:
