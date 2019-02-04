@@ -12,6 +12,7 @@ toposort = "*"
 black = "*"
 isort = "*"
 pytest-cov = "*"
+sanic = "*"
 
 [requires]
 python_version = "3.7"
