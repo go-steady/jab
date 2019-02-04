@@ -101,6 +101,11 @@ class CircleTwo:
         return "Two"  # pragma: no cover
 
 
+class NeedsLogger:
+    def __init__(self, l: jab.Logger) -> None:
+        self.log = l  # pragma: no cover
+
+
 def test_harness() -> None:
     app = jab.Harness().provide(ClassNew, ClassBasic, ConcreteNumber)
     assert app._env["ClassNew"].t is app._env["ClassBasic"]
@@ -144,3 +149,8 @@ def test_non_class_provide() -> None:
 
 def test_on_start() -> None:
     jab.Harness().provide(ClassNew, ClassBasic, ConcreteNumber).run()
+
+
+def test_logger() -> None:
+    harness = jab.Harness().provide(NeedsLogger)
+    assert harness._env["NeedsLogger"].log is harness._logger

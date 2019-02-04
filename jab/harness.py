@@ -14,7 +14,9 @@ from jab.exceptions import (
     NoAnnotation,
     NoConstructor,
 )
-from jab.logging import DefaultJabLogger
+from jab.logging import DefaultJabLogger, Logger
+
+DEFAULT_LOGGER = "DEFAULT LOGGER"
 
 
 class Harness:
@@ -110,6 +112,10 @@ class Harness:
         execution_order = toposort.toposort_flatten(deps)
         self._exec_order = execution_order
         for x in execution_order:
+
+            if x == DEFAULT_LOGGER:
+                continue
+
             reqs = self._dep_graph[x]
             provided = {k: self._env[v] for k, v in reqs.items()}
             self._env[x] = self._provided[x](**provided)
@@ -117,7 +123,9 @@ class Harness:
     def _search_protocol(self, dep: Any) -> Optional[str]:
         """
         `search_protocol` attempts to match a Protocol definition to an object
-        provided to the Harness.
+        provided to the Harness. If the required Protocol is that of `jab.Logger`
+        and no suitable Logger has been provided, the `DefaultJabLogger` stored in
+        `_logger` will be provided.
 
         Parameters
         ----------
@@ -133,6 +141,11 @@ class Harness:
         for name, obj in self._provided.items():
             if isimplementation(obj, dep):
                 return name
+
+        if dep is Logger:
+            self._env[DEFAULT_LOGGER] = self._logger
+            return DEFAULT_LOGGER
+
         return None
 
     def _search_concrete(self, dep: Any) -> Optional[str]:
