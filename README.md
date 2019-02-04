@@ -1,4 +1,4 @@
-# 💉  jab ![py-version](https://img.shields.io/badge/python-3.7-blue.svg) ![codecov](https://img.shields.io/badge/coverage-86%25-green.svg)
+# 💉  jab ![jab-version](https://img.shields.io/badge/version-0.1.0-orange.svg) ![py-version](https://img.shields.io/badge/python-3.7-blue.svg) ![codecov](https://img.shields.io/badge/coverage-86%25-green.svg)
 ###### A Python Dependency Injection Framework
 
 `jab` is heavily inspired by [uber-go/fx](https://github.com/uber-go/fx).
