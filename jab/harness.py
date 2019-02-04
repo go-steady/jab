@@ -215,7 +215,9 @@ class Harness:
         """
         `_on_start` gathers and calls all `on_start` methods of the provided objects.
         The futures of the `on_start` methods are collected and awaited inside of the
-        Harness's event loop.
+        Harness's event loop. `on_start` methods are the only methods that are allowed
+        to take arguments. The paramters must be satisfied by the objects or classes
+        passed into the Harness's `provide` function like a constructor.
         """
         start_awaits = []
         for x in self._exec_order:
