@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from inspect import isclass, isfunction
-from typing import Any, Dict, Optional
+import asyncio
+from copy import deepcopy
+from inspect import isclass, isfunction, iscoroutinefunction
+from typing import Any, Dict, Optional, List
 
 import toposort
 from typing_extensions import Protocol, _get_protocol_attrs  # type: ignore
@@ -14,6 +16,7 @@ class Harness:
         self._provided: Dict[str, Any] = {}
         self._dep_graph: Dict[Any, Dict[str, Any]] = {}
         self._env: Dict[str, Any] = {}
+        self._exec_order: List[str] = []
 
     def provide(self, *args: Any) -> Harness:  # NOQA
         for arg in args:
@@ -25,8 +28,13 @@ class Harness:
 
     def _build_graph(self) -> None:
         for name, obj in self._provided.items():
-            dependencies = obj.__init__.__annotations__
+            dependencies = deepcopy(obj.__init__.__annotations__)
+
+            if len(dependencies) < 1:
+                raise NoAnnotation("{} is missing a type-annotated constructor".format(name))
+
             del dependencies["return"]
+
             concrete = {}
 
             for key, dep in dependencies.items():
@@ -53,12 +61,11 @@ class Harness:
             deps[k] = {i for _, i in v.items()}
 
         execution_order = toposort.toposort_flatten(deps)
+        self._exec_order = execution_order
         for x in execution_order:
             reqs = self._dep_graph[x]
             provided = {k: self._env[v] for k, v in reqs.items()}
             self._env[x] = self._provided[x](**provided)
-
-        print(self._env)
 
     def _search_protocol(self, dep: Any) -> Optional[str]:
         for name, obj in self._provided.items():
@@ -88,6 +95,34 @@ class Harness:
                     arg.__name__
                 )
             )
+
+    def run(self) -> None:
+        aws = []
+        for x in self._exec_order:
+            try:
+                if not iscoroutinefunction(self._provided[x].on_start):
+                    raise Exception
+                aws.append(self._env[x].on_start())
+            except AttributeError:
+                pass
+
+        print(aws)
+        try:
+            asyncio.get_event_loop().run_until_complete(asyncio.gather(*aws))
+        except KeyboardInterrupt:
+            print("goodbye")
+        except Exception as e:
+            print(str(e))
+
+        for x in self._exec_order[::-1]:
+            try:
+                fn = self._env[x].on_stop
+                if iscoroutinefunction(fn):
+                    asyncio.get_event_loop().run_until_complete(fn())
+                else:
+                    fn()
+            except AttributeError:
+                pass
 
 
 def isimplementation(cls_: Any, proto: Any) -> bool:
