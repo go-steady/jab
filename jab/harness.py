@@ -215,7 +215,9 @@ class Harness:
         """
         `_on_start` gathers and calls all `on_start` methods of the provided objects.
         The futures of the `on_start` methods are collected and awaited inside of the
-        Harness's event loop.
+        Harness's event loop. `on_start` methods are the only methods that are allowed
+        to take arguments. The paramters must be satisfied by the objects or classes
+        passed into the Harness's `provide` function like a constructor.
         """
         start_awaits = []
         for x in self._exec_order:
@@ -224,7 +226,34 @@ class Harness:
                     raise InvalidLifecycleMethod(
                         "{}.on_start must be an async method".format(x)
                     )
-                start_awaits.append(self._env[x].on_start())
+                in_ = self._env[x].on_start.__annotations__
+
+                map_ = {}
+                for key, dep in in_.items():
+                    if key == "return":
+                        continue
+
+                    if issubclass(dep, Protocol):  # type: ignore
+                        match = self._search_protocol(dep)
+                        if match is None:
+                            raise MissingDependency(
+                                "Can't build depdencies for {}'s on_start method. Missing suitable argument for parameter {} [{}].".format(  # NOQA
+                                    x, key, str(dep)
+                                )
+                            )
+                    else:
+                        match = self._search_concrete(dep)
+                        if match is None:
+                            raise MissingDependency(
+                                "Can't build depdencies for {}'s on_start method. Missing suitable argument for parameter {} [{}].".format(  # NOQA
+                                    x, key, str(dep)
+                                )
+                            )
+
+                    map_[key] = match
+
+                kwargs = {k: self._env[v] for k, v in map_.items()}
+                start_awaits.append(self._env[x].on_start(**kwargs))
                 self._logger.debug("Added on_start method for {}".format(x))
             except AttributeError:
                 pass
