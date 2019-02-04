@@ -18,7 +18,9 @@ from jab.exceptions import (
 
 class Harness:
     """
-    `Harness` lorem ipsum...
+    `Harness` takes care of the wiring of depdencies to constructors that grows tedious quickly.
+    By providing class definitions to the provide method, the Harness will know how to wire up
+    all the classes' dependencies so that everything is connected and run appropriately.
     """
 
     def __init__(self) -> None:
@@ -30,12 +32,13 @@ class Harness:
 
     def provide(self, *args: Any) -> Harness:  # NOQA
         """
-        `provide` lorem ipsum...
+        `provide` provides the Harness with the class definitions it is to construct, maintain,
+        and run inside its local environment.
 
         Parameters
         ----------
         args : Any
-            Classes etc.
+            Each element of args must be a class definition with a type-annotated constructor.
         """
         for arg in args:
             self._check_provide(arg)
@@ -46,7 +49,14 @@ class Harness:
 
     def _build_graph(self) -> None:
         """
-        `build_graph` lorem ipsum...
+        `_build_graph` builds the dependency graph based on the type annotations of the provided class
+        constructors.
+
+        Raises
+        ------
+        MissingDependency
+            If a class's constructor requires a dependency that has not been provided. This exception
+            will be raised.
         """
         for name, obj in self._provided.items():
             dependencies = deepcopy(obj.__init__.__annotations__)
@@ -80,7 +90,15 @@ class Harness:
 
     def _build_env(self) -> None:
         """
-        `build_env` lorem ipsum...
+        `build_env` takes the dependency graph and topologically sorts
+        the Harness's dependencies and then constructs then in order,
+        providing each constructor with the necessary constructed objects.
+
+        Raises
+        ------
+        toposort.CircularDependencyError
+            If a circular dependency exists in the provided objects this function
+            will fail.
         """
         deps = {}
 
@@ -96,7 +114,19 @@ class Harness:
 
     def _search_protocol(self, dep: Any) -> Optional[str]:
         """
-        `search_protocol` lorem ipsum...
+        `search_protocol` attempts to match a Protocol definition to an object
+        provided to the Harness.
+
+        Parameters
+        ----------
+        dep : Any
+            The protocol that some object must implement.
+
+        Returns
+        -------
+        Optional[str]
+            If an object can be found that implements the provided Protocol, its key-value
+            is returned, otherwise None is returned.
         """
         for name, obj in self._provided.items():
             if isimplementation(obj, dep):
@@ -105,7 +135,19 @@ class Harness:
 
     def _search_concrete(self, dep: Any) -> Optional[str]:
         """
-        `search_concrete` loreme ipsum...
+        `search_concrete` attempts to match a concrete class dependency to an object
+        provided to the Harness.
+
+        Parameters
+        ----------
+        dep : Any
+            The class that must be found inside of the provided class list.
+
+        Returns
+        -------
+        Optional[str]
+            If the appropriate object can be found, its key-name is returned. If
+            an appropriate object can't be found, None is returned.
         """
         for name, obj in self._provided.items():
             if obj.__module__ == dep.__module__ and obj.__name__ == dep.__name__:
@@ -114,7 +156,21 @@ class Harness:
 
     def _check_provide(self, arg: Any) -> None:
         """
-        `check_provide` lorem ipsum...
+        `check_provide` ensures that an argument to the provide function meets the requirements
+        necessary to build and receive dependencies.
+
+        Parameters
+        ----------
+        arg : Any
+            Any sort of object that has been passed into `Harness.provide`
+
+        Raises
+        ------
+        NoConstructor
+            Raised with the object passed to provide is not a class definition.
+        NoAnnotation
+            Raised when the constructor function of the class definition lacks
+            type annotations necessary for dependency wiring.
         """
         if not isclass(arg):
             raise NoConstructor(
@@ -142,7 +198,9 @@ class Harness:
 
     def _on_start(self) -> bool:
         """
-        `_on_start` ...
+        `_on_start` gathers and calls all `on_start` methods of the provided objects.
+        The futures of the `on_start` methods are collected and awaited inside of the
+        Harness's event loop.
         """
         start_awaits = []
         for x in self._exec_order:
@@ -170,7 +228,8 @@ class Harness:
 
     def _on_stop(self) -> None:
         """
-        `on_stop` ...
+        `_on_stop` gathers and calls all `on_stop` methods of the provided objects.
+        Unlike `_on_start` and `_run` it thee `on_stop` methods are called serially.
         """
         for x in self._exec_order[::-1]:
             try:
@@ -184,7 +243,9 @@ class Harness:
 
     def _run(self) -> None:
         """
-        `_run` ...
+        `_run` gathers and calls all `run` methods of the provided objects.
+        These methods must be async and are run inside of a `gather` call.
+        The main execution thread blocks until all of these `run` methods complete.
         """
         run_awaits = []
         for x in self._exec_order:
@@ -207,7 +268,8 @@ class Harness:
 
     def run(self) -> None:
         """
-        `run` ...
+        `run` executes the full lifecycle of the Harness. All `on_start` methods are executed, then all
+        `run` methods, and finally all `on_stop` methods.
         """
         interrupt = self._on_start()
 
@@ -219,7 +281,20 @@ class Harness:
 
 def isimplementation(cls_: Any, proto: Any) -> bool:
     """
-    `isimplementation`
+    `isimplementation` checks to see if a provided class definition implement a provided Protocol definition.
+
+    Parameters
+    ----------
+    cls_ : Any
+        A concrete class defintiion
+    proto : Any
+        A protocol definition
+
+    Returns
+    -------
+    bool
+        Returns whether or not the provided class definition is a valid
+        implementation of the provided Protocol.
     """
     proto_annotations: Dict[str, Any] = {}
     cls_annotations: Dict[str, Any] = {}
