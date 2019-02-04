@@ -106,6 +106,14 @@ class NeedsLogger:
         self.log = l  # pragma: no cover
 
 
+class ArgedOnStart:
+    def __init__(self) -> None:
+        pass
+
+    async def on_start(self, thing: Thing) -> None:
+        print(thing.get_thing())
+
+
 def test_harness() -> None:
     app = jab.Harness().provide(ClassNew, ClassBasic, ConcreteNumber)
     assert app._env["ClassNew"].t is app._env["ClassBasic"]
@@ -154,3 +162,10 @@ def test_on_start() -> None:
 def test_logger() -> None:
     harness = jab.Harness().provide(NeedsLogger)
     assert harness._env["NeedsLogger"].log is harness._logger
+
+
+def test_arugments_in_on_start() -> None:
+    with pytest.raises(jab.Exceptions.MissingDependency):
+        jab.Harness().provide(ArgedOnStart).run()
+
+    jab.Harness().provide(ArgedOnStart, ClassBasic, ConcreteNumber).run()

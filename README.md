@@ -1,4 +1,4 @@
-# 💉  jab ![jab-version](https://img.shields.io/badge/version-0.1.0-orange.svg) ![py-version](https://img.shields.io/badge/python-3.7-blue.svg) ![codecov](https://img.shields.io/badge/coverage-86%25-green.svg)
+# 💉  jab ![py-version](https://img.shields.io/badge/python-3.7-blue.svg) ![codecov](https://img.shields.io/badge/coverage-90%25-green.svg)
 ###### A Python Dependency Injection Framework
 
 `jab` is heavily inspired by [uber-go/fx](https://github.com/uber-go/fx).
@@ -68,7 +68,7 @@ Steady
 
 ### on_start
 
-When `run` is called on a jab harness it moves through three states, the first of which is `on_start`. The harness iterates through all of the objects included in the `provide` call, any object that has an `on_start` method is called. The main routine of the harness blocks until all `on_start` methods have completed.
+When `run` is called on a jab harness it moves through three states, the first of which is `on_start`. The harness iterates through all of the objects included in the `provide` call, any object that has an `on_start` method is called. The main routine of the harness blocks until all `on_start` methods have completed. `on_start` methods are the only `jab` lifecycle methods that can take arguments. Any arguments passed into an `on_start` method must be provided to the harness as you would any other dependency.
 
 ### run
 
