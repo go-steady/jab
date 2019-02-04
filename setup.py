@@ -1,4 +1,8 @@
+import sys
 from distutils.core import setup
+
+if not (sys.version_info.major >= 3 and sys.version_info.minor >= 7):
+    raise Exception("jab only works with Python 3.7+")
 
 VERSION = "0.1.0"
 
