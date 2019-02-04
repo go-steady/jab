@@ -1,0 +1,14 @@
+class NoConstructor(Exception):
+    pass
+
+
+class NoAnnotation(Exception):
+    pass
+
+
+class MissingDependency(Exception):
+    pass
+
+
+class InvalidLifecycleMethod(Exception):
+    pass
