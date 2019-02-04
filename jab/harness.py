@@ -14,6 +14,7 @@ from jab.exceptions import (
     NoAnnotation,
     NoConstructor,
 )
+from jab.logging import DefaultJabLogger
 
 
 class Harness:
@@ -29,6 +30,7 @@ class Harness:
         self._env: Dict[str, Any] = {}
         self._exec_order: List[str] = []
         self._loop = asyncio.get_event_loop()
+        self._logger = DefaultJabLogger()
 
     def provide(self, *args: Any) -> Harness:  # NOQA
         """
@@ -210,18 +212,24 @@ class Harness:
                         "{}.on_start must be an async method".format(x)
                     )
                 start_awaits.append(self._env[x].on_start())
+                self._logger.debug("Added on_start method for {}".format(x))
             except AttributeError:
                 pass
 
         try:
+            self._logger.debug("Executing on_start methods.")
             self._loop.run_until_complete(asyncio.gather(*start_awaits))
         except KeyboardInterrupt:
-            # XXX: logging
-            print("goodbye")
+            self._logger.critical(
+                "Keyboard interrupt during execution of on_start methods."
+            )
             return True
         except Exception as e:
-            # XXX: logging
-            print(str(e))
+            self._logger.critical(
+                "Encountered an unexpected error during executing of on_start methods ({})".format(
+                    str(e)
+                )
+            )
             return True
 
         return False
@@ -238,6 +246,7 @@ class Harness:
                     self._loop.run_until_complete(fn())
                 else:
                     fn()
+                self._logger.debug("Executed on_stop method for {}".format(x))
             except AttributeError:
                 pass
 
@@ -255,16 +264,21 @@ class Harness:
                         "{}.run must be an async method".format(x)
                     )
                 run_awaits.append(self._env[x].run())
+                self._logger.debug("Added run method for {}".format(x))
             except AttributeError:
                 pass
 
         try:
+            self._logger.debug("Executing run methods.")
             self._loop.run_until_complete(asyncio.gather(*run_awaits))
         except KeyboardInterrupt:
-            # XXX: logging
-            print("goodbye")
+            self._logger.critical("Keyboard interrupt during execution of run methods.")
         except Exception as e:
-            print(str(e))
+            self._logger.critical(
+                "Encountered unexpected error during execution of run methods ({})".format(
+                    str(e)
+                )
+            )
 
     def run(self) -> None:
         """
