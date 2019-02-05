@@ -1,4 +1,5 @@
 import asyncio
+from collections import Counter
 
 import pytest
 import toposort
@@ -114,6 +115,45 @@ class ArgedOnStart:
         print(thing.get_thing())
 
 
+def ProvideCounter() -> Counter:
+    return Counter()
+
+
+class NeedsCounter:
+    def __init__(self, c: Counter) -> None:
+        self.c = c
+        self.c["test"] += 2
+
+
+class Shouter(Protocol):
+    def shout(self) -> str:
+        pass
+
+
+class ImplementsShout:
+    def __init__(self, word: str) -> None:
+        self.word = word
+
+    def shout(self) -> str:
+        return self.word.upper()
+
+
+def ProvidesShouter() -> ImplementsShout:
+    return ImplementsShout("hello")
+
+
+class NeedsShouter:
+    def __init__(self, s: Shouter) -> None:
+        self.s = s
+
+    async def run(self) -> None:
+        print(self.s.shout())
+
+
+def FunctionalRequire(c: Counter) -> NeedsCounter:
+    return NeedsCounter(c)
+
+
 def test_harness() -> None:
     app = jab.Harness().provide(ClassNew, ClassBasic, ConcreteNumber)
     assert app._env["ClassNew"].t is app._env["ClassBasic"]
@@ -169,3 +209,26 @@ def test_arugments_in_on_start() -> None:
         jab.Harness().provide(ArgedOnStart).run()
 
     jab.Harness().provide(ArgedOnStart, ClassBasic, ConcreteNumber).run()
+
+
+def test_functional_constructor() -> None:
+    h = jab.Harness().provide(ProvideCounter, NeedsCounter)
+    assert h._env["Counter"] is h._env["NeedsCounter"].c
+    assert h._env["Counter"]["test"] == 2
+
+
+def test_concrete_function_protocol_need() -> None:
+    h = jab.Harness().provide(NeedsShouter, ProvidesShouter)
+    assert h._env["NeedsShouter"].s.shout() == "HELLO"
+
+
+def test_functional_requires() -> None:
+    jab.Harness().provide(FunctionalRequire, ProvideCounter)
+
+
+def test_bad_function() -> None:
+    def bad_func():  # type: ignore
+        return None
+
+    with pytest.raises(jab.Exceptions.NoConstructor):
+        jab.Harness().provide(bad_func, NeedsCounter)
