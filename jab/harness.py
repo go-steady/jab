@@ -46,7 +46,12 @@ class Harness:
         """
         for arg in args:
             self._check_provide(arg)
-            self._provided[arg.__name__] = arg
+            name = arg.__name__
+
+            if isfunction(arg):
+                name = arg.__annotations__["return"].__name__
+
+            self._provided[name] = arg
         self._build_graph()
 
         return self
@@ -63,7 +68,12 @@ class Harness:
             will be raised.
         """
         for name, obj in self._provided.items():
-            dependencies = deepcopy(obj.__init__.__annotations__)
+            if isfunction(obj):
+                dependencies = deepcopy(obj.__annotations__)
+                name = dependencies["return"].__name__
+            else:
+                dependencies = deepcopy(obj.__init__.__annotations__)
+
             concrete = {}
 
             for key, dep in dependencies.items():
@@ -139,6 +149,9 @@ class Harness:
             is returned, otherwise None is returned.
         """
         for name, obj in self._provided.items():
+            if isfunction(obj):
+                obj = obj.__annotations__["return"]
+
             if isimplementation(obj, dep):
                 return name
 
@@ -165,8 +178,12 @@ class Harness:
             an appropriate object can't be found, None is returned.
         """
         for name, obj in self._provided.items():
+            if isfunction(obj):
+                obj = obj.__annotations__["return"]
+
             if obj.__module__ == dep.__module__ and obj.__name__ == dep.__name__:
                 return name
+
         return None
 
     def _check_provide(self, arg: Any) -> None:
@@ -187,15 +204,30 @@ class Harness:
             Raised when the constructor function of the class definition lacks
             type annotations necessary for dependency wiring.
         """
+        _is_func = False
         if not isclass(arg):
-            raise NoConstructor(
-                "Provided argument '{}' does not have a constructor function".format(
-                    str(arg)
+            if not isfunction(arg):
+                raise NoConstructor(
+                    "Provided argument '{}' does not have a constructor function".format(
+                        str(arg)
+                    )
                 )
-            )
+            else:
+                _is_func = True
+                deps = arg.__annotations__
+                if len(deps) == 0 or deps.get("return") is None:
+                    raise NoConstructor(
+                        "Provided argument '{}' does not have a constructor function".format(
+                            str(arg)
+                        )
+                    )
 
         try:
-            deps = arg.__init__.__annotations__
+            if _is_func:
+                deps = arg.__annotations__
+            else:
+                deps = arg.__init__.__annotations__
+
             if len(deps) == 0:
                 raise NoAnnotation(
                     "Provided argument '{}' does not have a type-annotated constructor".format(

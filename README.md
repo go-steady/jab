@@ -1,4 +1,4 @@
-# 💉  jab ![jab-version](https://img.shields.io/badge/version-0.1.1-orange.svg) ![py-version](https://img.shields.io/badge/python-3.7-blue.svg) ![codecov](https://img.shields.io/badge/coverage-90%25-green.svg)
+# 💉  jab ![jab-version](https://img.shields.io/badge/version-0.2.0-orange.svg) ![py-version](https://img.shields.io/badge/python-3.7-blue.svg) ![codecov](https://img.shields.io/badge/coverage-82%25-yellowgreen.svg)
 ###### A Python Dependency Injection Framework
 
 `jab` is heavily inspired by [uber-go/fx](https://github.com/uber-go/fx).
@@ -80,4 +80,4 @@ After all `run` methods have completed, the harness interates through all of the
 
 ## Constructors
 
-Currently `jab` only supports full class definitions in the `provide` call. It's planned to incorporate functional consturctors alongside class constructors.
+`jab` supports both Functional and Class constructors. Everything just needs to be type-annotated.
