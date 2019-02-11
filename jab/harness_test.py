@@ -232,3 +232,10 @@ def test_bad_function() -> None:
 
     with pytest.raises(jab.Exceptions.NoConstructor):
         jab.Harness().provide(bad_func, NeedsCounter)
+
+
+def test_inspect() -> None:
+    h = jab.Harness().provide(ProvideCounter, NeedsCounter)
+    env, _ = h.inspect()
+    print(env, h._env)
+    assert 0 == 1

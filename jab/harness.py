@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from copy import deepcopy
 from inspect import isclass, iscoroutinefunction, isfunction
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import toposort
 from typing_extensions import Protocol, _get_protocol_attrs  # type: ignore
@@ -33,6 +33,24 @@ class Harness:
         self._exec_order: List[str] = []
         self._loop = asyncio.get_event_loop()
         self._logger = DefaultJabLogger()
+
+    def inspect(self) -> Tuple[Dict[str, Any], Dict[Any, Dict[str, Any]]]:
+        """
+        `inspect` allows for introspection of the Harness's environment.
+        This allows for direct access to the objects created and stored in
+        the environment as well as the ability to examine the dependency
+        graph as understood by the harness.
+
+        Returns
+        -------
+        Dict[str, Any]
+            The Harness's environment. A Dictionary of class name keys
+            to instances of that class values.
+        Dict[Any, Dict[str, Any]]
+            The dependenccy graph built after `provide` calls on the
+            harness.
+        """
+        return (deepcopy(self._env), deepcopy(self._dep_graph))
 
     def provide(self, *args: Any) -> Harness:  # NOQA
         """
