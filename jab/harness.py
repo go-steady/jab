@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import uvloop
 from copy import deepcopy
 from inspect import isclass, iscoroutinefunction, isfunction
 from typing import Any, Dict, List, Optional, Tuple
@@ -27,6 +28,8 @@ class Harness:
     """
 
     def __init__(self) -> None:
+        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+
         self._provided: Dict[str, Any] = {}
         self._dep_graph: Dict[Any, Dict[str, Any]] = {}
         self._env: Dict[str, Any] = {}
@@ -383,6 +386,7 @@ class Harness:
             self._run()
 
         self._on_stop()
+        self._loop.close()
 
 
 def isimplementation(cls_: Any, proto: Any) -> bool:
