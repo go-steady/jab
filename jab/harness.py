@@ -253,7 +253,6 @@ class Harness:
         """
         _on_start_deps = {}
         _deps_map = {}
-        print(self._exec_order)
         for x in self._exec_order:
             try:
                 in_ = self._env[x].on_start.__annotations__
