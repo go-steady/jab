@@ -170,11 +170,6 @@ def test_missing_dep() -> None:
         jab.Harness().provide(ClassNew)
 
 
-def test_sync_on_start() -> None:
-    with pytest.raises(jab.Exceptions.InvalidLifecycleMethod):
-        jab.Harness().provide(BadOnStart).run()
-
-
 def test_sync_run() -> None:
     with pytest.raises(jab.Exceptions.InvalidLifecycleMethod):
         jab.Harness().provide(BadRun).run()

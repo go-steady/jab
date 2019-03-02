@@ -251,13 +251,11 @@ class Harness:
         to take arguments. The paramters must be satisfied by the objects or classes
         passed into the Harness's `provide` function like a constructor.
         """
-        start_awaits = []
+        _on_start_deps = {}
+        _deps_map = {}
+        print(self._exec_order)
         for x in self._exec_order:
             try:
-                if not iscoroutinefunction(self._env[x].on_start):
-                    raise InvalidLifecycleMethod(
-                        "{}.on_start must be an async method".format(x)
-                    )
                 in_ = self._env[x].on_start.__annotations__
 
                 map_ = {}
@@ -284,15 +282,25 @@ class Harness:
 
                     map_[key] = match
 
-                kwargs = {k: self._env[v] for k, v in map_.items()}
-                start_awaits.append(self._env[x].on_start(**kwargs))
-                self._logger.debug("Added on_start method for {}".format(x))
+                _on_start_deps[x] = {dep for _, dep in map_.items()}
+                _deps_map[x] = {k: self._env[v] for k, v in map_.items()}
             except AttributeError:
                 pass
 
+        call_order = toposort.toposort_flatten(_on_start_deps)
+
         try:
             self._logger.debug("Executing on_start methods.")
-            self._loop.run_until_complete(asyncio.gather(*start_awaits))
+
+            for x in call_order:
+                concrete = _deps_map[x]
+
+                if iscoroutinefunction(self._env[x].on_start):
+                    self._loop.run_until_complete(self._env[x].on_start(**concrete))
+                else:
+                    self._env[x].on_start(**concrete)
+
+                self._logger.debug("Executed {}.on_start".format(x))
         except KeyboardInterrupt:
             self._logger.critical(
                 "Keyboard interrupt during execution of on_start methods."
