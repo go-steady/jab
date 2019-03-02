@@ -58,7 +58,7 @@ class Harness:
 
     def _build_graph(self) -> None:
         """
-        `_build_graph` builds the dependency graph based on the type annotations of the provided class
+        `_build_graph` builds the dependency graph based on the type annotations of the provided
         constructors.
 
         Raises
@@ -307,7 +307,7 @@ class Harness:
             return True
         except Exception as e:
             self._logger.critical(
-                "Encountered an unexpected error during executing of on_start methods ({})".format(
+                "Encountered an unexpected error during execution of on_start methods ({})".format(
                     str(e)
                 )
             )
