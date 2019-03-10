@@ -13,8 +13,8 @@ from jab.exceptions import (
     InvalidLifecycleMethod,
     MissingDependency,
     NoAnnotation,
-    UnknownConstructor,
     NoConstructor,
+    UnknownConstructor,
 )
 from jab.inspect import Dependency, Provided
 from jab.logging import DefaultJabLogger, Logger

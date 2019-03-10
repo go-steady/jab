@@ -1,12 +1,11 @@
 import asyncio
 from collections import Counter
+from inspect import isfunction
+from typing import get_type_hints
 
 import pytest
 import toposort
-from inspect import isfunction
 from typing_extensions import Protocol
-
-from typing import get_type_hints
 
 import jab
 
