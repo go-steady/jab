@@ -10,10 +10,10 @@ dependencies = ["typing_extensions", "toposort"]
 
 setup(
     name="jab",
-    author="Steady",
+    author="Niels Lindgren",
     version=VERSION,
     packages=["jab"],
     platforms="ANY",
-    url="https://github.com/go-steady/jab",
+    url="https://github.com/stntngo/jab",
     install_requires=dependencies,
 )
