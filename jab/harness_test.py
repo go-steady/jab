@@ -1,5 +1,7 @@
 import asyncio
 from collections import Counter
+from inspect import isfunction
+from typing import get_type_hints
 
 import pytest
 import toposort
@@ -232,3 +234,19 @@ def test_bad_function() -> None:
 
     with pytest.raises(jab.Exceptions.NoConstructor):
         jab.Harness().provide(bad_func, NeedsCounter)
+
+
+def test_inspect() -> None:
+    h = jab.Harness().provide(
+        ProvideCounter, NeedsCounter, NeedsShouter, ProvidesShouter
+    )
+
+    for x in h.inspect():
+        assert x == h.inspect(x.constructor)
+
+        if isfunction(x.constructor):
+            hints = get_type_hints(x.constructor)
+        else:
+            hints = get_type_hints(x.constructor.__init__)
+
+        assert len([x for x in hints.keys() if x != "return"]) == len(x.dependencies)

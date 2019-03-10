@@ -3,9 +3,10 @@ from __future__ import annotations
 import asyncio
 from copy import deepcopy
 from inspect import isclass, iscoroutinefunction, isfunction
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Type, Union, overload
 
 import toposort
+import uvloop
 from typing_extensions import Protocol, _get_protocol_attrs  # type: ignore
 
 from jab.exceptions import (
@@ -13,7 +14,9 @@ from jab.exceptions import (
     MissingDependency,
     NoAnnotation,
     NoConstructor,
+    UnknownConstructor,
 )
+from jab.inspect import Dependency, Provided
 from jab.logging import DefaultJabLogger, Logger
 
 DEFAULT_LOGGER = "DEFAULT LOGGER"
@@ -27,12 +30,101 @@ class Harness:
     """
 
     def __init__(self) -> None:
+        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+
         self._provided: Dict[str, Any] = {}
         self._dep_graph: Dict[Any, Dict[str, Any]] = {}
         self._env: Dict[str, Any] = {}
         self._exec_order: List[str] = []
         self._loop = asyncio.get_event_loop()
         self._logger = DefaultJabLogger()
+
+    @overload
+    def inspect(self) -> List[Provided]:
+        pass
+
+    @overload  # noqa: F811
+    def inspect(self, arg: Union[Type, Callable]) -> Provided:
+        pass
+
+    def inspect(  # noqa: F811
+        self, arg: Optional[Union[Type, Callable]] = None
+    ) -> Union[List[Provided], Provided]:
+        """
+        `inspect` allows for introspection of the Harness's environment.
+        This allows for direct access to the objects created and stored in
+        the environment as well as the ability to examine the dependency
+        graph as understood by the harness.
+
+        Parameters
+        ----------
+        arg : Optional[Union[Type, Callable]]
+            Optional argument of either a class or a functional constructor.
+            If no argument is provided, a full inspection record of all
+            provided classes is returned
+
+        Returns
+        -------
+        Union[List[Provided], Provided]
+            The Provided class represents metadata around a provided, constructed
+            class and its dependencies as well as the constructed instance itself.
+        """
+        if arg:
+            return self._build_inspect(arg)
+
+        return [self._build_inspect(x) for x in self._provided.values()]
+
+    def _build_inspect(self, arg: Any) -> Provided:
+        """
+        `_build_inspect` creates the Provided dataclass for a specific constructor.
+        The function is called recursively on a constructor's depdencies to create
+        the dependecy list.
+
+        Parameters
+        ----------
+        arg : Any
+            The constructor whose inspection record should be generated.
+
+        Returns
+        -------
+        Provided
+            An inspection record of a constructor, its name, its concrete, constructed
+            instance and all of its dependencies.
+
+        Raises
+        ------
+        UnknownConstructor
+            If the provided constructor is unknown to the jab harness, this
+            exception will be raised.
+        """
+        t = arg
+
+        if isfunction(arg):
+            deps = arg.__annotations__
+            t = deps["return"]
+        else:
+            deps = arg.__init__.__annotations__
+
+        name, obj = next(
+            ((name, obj) for name, obj in self._env.items() if isinstance(obj, t)),
+            (None, None),
+        )
+
+        if not name or not obj:
+            raise UnknownConstructor("{} not registered with jab harness".format(arg))
+
+        matched = self._dep_graph[name]
+
+        dependencies = [
+            Dependency(
+                provided=self._build_inspect(self._provided[x]),
+                parameter=p,
+                type=deps[p],
+            )
+            for p, x in matched.items()
+        ]
+
+        return Provided(name=name, constructor=arg, obj=obj, dependencies=dependencies)
 
     def provide(self, *args: Any) -> Harness:  # NOQA
         """
@@ -365,6 +457,7 @@ class Harness:
             self._run()
 
         self._on_stop()
+        self._loop.close()
 
 
 def isimplementation(cls_: Any, proto: Any) -> bool:
