@@ -3,7 +3,10 @@ from collections import Counter
 
 import pytest
 import toposort
+from inspect import isfunction
 from typing_extensions import Protocol
+
+from typing import get_type_hints
 
 import jab
 
@@ -235,7 +238,16 @@ def test_bad_function() -> None:
 
 
 def test_inspect() -> None:
-    h = jab.Harness().provide(ProvideCounter, NeedsCounter)
-    env, _ = h.inspect()
-    print(env, h._env)
-    assert 0 == 1
+    h = jab.Harness().provide(
+        ProvideCounter, NeedsCounter, NeedsShouter, ProvidesShouter
+    )
+
+    for x in h.inspect():
+        assert x == h.inspect(x.constructor)
+
+        if isfunction(x.constructor):
+            hints = get_type_hints(x.constructor)
+        else:
+            hints = get_type_hints(x.constructor.__init__)
+
+        assert len([x for x in hints.keys() if x != "return"]) == len(x.dependencies)

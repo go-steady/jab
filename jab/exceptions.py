@@ -12,3 +12,7 @@ class MissingDependency(Exception):
 
 class InvalidLifecycleMethod(Exception):
     pass
+
+
+class UnknownConstructor(Exception):
+    pass
