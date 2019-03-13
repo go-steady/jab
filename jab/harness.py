@@ -384,14 +384,17 @@ class Harness:
             self._logger.debug("Executing on_start methods.")
 
             for x in call_order:
-                concrete = _deps_map[x]
+                kwargs = _deps_map.get(x, {})
 
-                if iscoroutinefunction(self._env[x].on_start):
-                    self._loop.run_until_complete(self._env[x].on_start(**concrete))
-                else:
-                    self._env[x].on_start(**concrete)
+                try:
+                    if iscoroutinefunction(self._env[x].on_start):
+                        self._loop.run_until_complete(self._env[x].on_start(**kwargs))
+                    else:
+                        self._env[x].on_start(**kwargs)
+                    self._logger.debug("Executed {}.on_start()".format(x))
+                except AttributeError:
+                    pass
 
-                self._logger.debug("Executed {}.on_start".format(x))
         except KeyboardInterrupt:
             self._logger.critical(
                 "Keyboard interrupt during execution of on_start methods."
