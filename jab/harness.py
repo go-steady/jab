@@ -227,8 +227,12 @@ class Harness:
                 continue
 
             reqs = self._dep_graph[x]
-            provided = {k: self._env[v] for k, v in reqs.items()}
-            self._env[x] = self._provided[x](**provided)
+            kwargs = {k: self._env[v] for k, v in reqs.items()}
+
+            if iscoroutinefunction(self._provided[x]):
+                self._env[x] = self._loop.run_until_complete(self._provided[x](**kwargs))
+            else:
+                self._env[x] = self._provided[x](**kwargs)
 
     def _search_protocol(self, dep: Any) -> Optional[str]:
         """
