@@ -1,11 +1,10 @@
 from typing import Callable, Dict, List
 
+import jab
 from sanic import Sanic
 from sanic.request import Request
 from sanic.response import HTTPResponse, text
 from typing_extensions import Protocol
-
-import jab
 
 
 class API:

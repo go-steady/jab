@@ -1,14 +1,21 @@
 from __future__ import annotations
 
 import asyncio
-from copy import deepcopy
 from inspect import isclass, iscoroutinefunction, isfunction
-from typing import Any, Callable, Dict, List, Optional, Type, Union, overload
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Type,
+    Union,
+    get_type_hints,
+    overload,
+)
 
 import toposort
 import uvloop
-from typing_extensions import Protocol, _get_protocol_attrs  # type: ignore
-
 from jab.exceptions import (
     InvalidLifecycleMethod,
     MissingDependency,
@@ -18,6 +25,7 @@ from jab.exceptions import (
 )
 from jab.inspect import Dependency, Provided
 from jab.logging import DefaultJabLogger, Logger
+from typing_extensions import Protocol, _get_protocol_attrs  # type: ignore
 
 DEFAULT_LOGGER = "DEFAULT LOGGER"
 
@@ -100,10 +108,10 @@ class Harness:
         t = arg
 
         if isfunction(arg):
-            deps = arg.__annotations__
+            deps = get_type_hints(arg)
             t = deps["return"]
         else:
-            deps = arg.__init__.__annotations__
+            deps = get_type_hints(arg.__init__)
 
         name, obj = next(
             ((name, obj) for name, obj in self._env.items() if isinstance(obj, t)),
@@ -141,7 +149,7 @@ class Harness:
             name = arg.__name__
 
             if isfunction(arg):
-                name = arg.__annotations__["return"].__name__
+                name = get_type_hints(arg)["return"].__name__
 
             self._provided[name] = arg
         self._build_graph()
@@ -161,10 +169,10 @@ class Harness:
         """
         for name, obj in self._provided.items():
             if isfunction(obj):
-                dependencies = deepcopy(obj.__annotations__)
+                dependencies = get_type_hints(obj)
                 name = dependencies["return"].__name__
             else:
-                dependencies = deepcopy(obj.__init__.__annotations__)
+                dependencies = get_type_hints(obj.__init__)
 
             concrete = {}
 
@@ -242,7 +250,7 @@ class Harness:
         """
         for name, obj in self._provided.items():
             if isfunction(obj):
-                obj = obj.__annotations__["return"]
+                obj = get_type_hints(obj)["return"]
 
             if isimplementation(obj, dep):
                 return name
@@ -271,7 +279,7 @@ class Harness:
         """
         for name, obj in self._provided.items():
             if isfunction(obj):
-                obj = obj.__annotations__["return"]
+                obj = get_type_hints(obj)["return"]
 
             if obj.__module__ == dep.__module__ and obj.__name__ == dep.__name__:
                 return name
@@ -306,7 +314,7 @@ class Harness:
                 )
             else:
                 _is_func = True
-                deps = arg.__annotations__
+                deps = get_type_hints(arg)
                 if len(deps) == 0 or deps.get("return") is None:
                     raise NoConstructor(
                         "Provided argument '{}' does not have a constructor function".format(
@@ -316,9 +324,9 @@ class Harness:
 
         try:
             if _is_func:
-                deps = arg.__annotations__
+                deps = get_type_hints(arg)
             else:
-                deps = arg.__init__.__annotations__
+                deps = get_type_hints(arg.__init__)
 
             if len(deps) == 0:
                 raise NoAnnotation(
@@ -347,7 +355,7 @@ class Harness:
         _deps_map = {}
         for x in self._exec_order:
             try:
-                in_ = self._env[x].on_start.__annotations__
+                in_ = get_type_hints(self._env[x].on_start)
 
                 map_ = {}
                 for key, dep in in_.items():
@@ -487,16 +495,8 @@ def isimplementation(cls_: Any, proto: Any) -> bool:
         Returns whether or not the provided class definition is a valid
         implementation of the provided Protocol.
     """
-    proto_annotations: Dict[str, Any] = {}
-    cls_annotations: Dict[str, Any] = {}
-
-    if hasattr(proto, "__annotations__"):
-
-        if not hasattr(cls_, "__annotations__"):
-            return False
-
-        proto_annotations = proto.__annotations__  # type: ignore
-        cls_annotations = cls_.__annotations__
+    proto_annotations = get_type_hints(proto)
+    cls_annotations = get_type_hints(cls_)
 
     for attr in _get_protocol_attrs(proto):
         try:
@@ -510,10 +510,10 @@ def isimplementation(cls_: Any, proto: Any) -> bool:
             return False
 
         if isfunction(proto_concrete):
-            proto_signature = proto_concrete.__annotations__
+            proto_signature = get_type_hints(proto_concrete)
 
             try:
-                cls_signature = cls_concrete.__annotations__
+                cls_signature = get_type_hints(cls_concrete)
             except AttributeError:
                 return False
 
