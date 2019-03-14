@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from inspect import isclass, iscoroutinefunction, isfunction
+from inspect import isclass, iscoroutinefunction, isfunction, ismethod
 from typing import (
     Any,
     Callable,
@@ -328,11 +328,18 @@ class Harness:
         _is_func = False
         if not isclass(arg):
             if not isfunction(arg):
-                raise NoConstructor(
-                    "Provided argument '{}' does not have a constructor function".format(
-                        str(arg)
-                    )
+                msg = "Provided argument '{}' not have a constructor function.".format(
+                    str(arg)
                 )
+                if ismethod(arg):
+                    if get_type_hints(arg)["return"] == Callable:
+                        raise NoConstructor(
+                            msg
+                            + " But it is a method that returns a possible constructor function."
+                            + " Consider adding a @property decorator."
+                        )
+
+                raise NoConstructor(msg)
             else:
                 _is_func = True
                 deps = get_type_hints(arg)
