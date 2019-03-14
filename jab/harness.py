@@ -17,6 +17,7 @@ from typing import (
 import toposort
 import uvloop
 from jab.exceptions import (
+    DuplicateProvide,
     InvalidLifecycleMethod,
     MissingDependency,
     NoAnnotation,
@@ -157,6 +158,13 @@ class Harness:
                         name = free_var.cell_contents._jab
                     except AttributeError:
                         pass
+
+            if self._provided.get(name):
+                raise DuplicateProvide(
+                    'Cannot provide object {} under name "{}". Name is already taken by object {}'.format(
+                        arg, name, self._provided[name]
+                    )
+                )
 
             self._provided[name] = arg
 
