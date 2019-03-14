@@ -151,7 +151,15 @@ class Harness:
             if isfunction(arg):
                 name = get_type_hints(arg)["return"].__name__
 
+                closures = arg.__closure__ or []
+                for free_var in closures:
+                    try:
+                        name = free_var.cell_contents._jab
+                    except AttributeError:
+                        pass
+
             self._provided[name] = arg
+
         self._build_graph()
 
         return self
@@ -170,7 +178,6 @@ class Harness:
         for name, obj in self._provided.items():
             if isfunction(obj):
                 dependencies = get_type_hints(obj)
-                name = dependencies["return"].__name__
             else:
                 dependencies = get_type_hints(obj.__init__)
 
@@ -230,7 +237,9 @@ class Harness:
             kwargs = {k: self._env[v] for k, v in reqs.items()}
 
             if iscoroutinefunction(self._provided[x]):
-                self._env[x] = self._loop.run_until_complete(self._provided[x](**kwargs))
+                self._env[x] = self._loop.run_until_complete(
+                    self._provided[x](**kwargs)
+                )
             else:
                 self._env[x] = self._provided[x](**kwargs)
 
