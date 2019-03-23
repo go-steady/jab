@@ -16,8 +16,6 @@ from typing import (
 
 import toposort
 import uvloop
-from typing_extensions import Protocol, _get_protocol_attrs  # type: ignore
-
 from jab.exceptions import (
     DuplicateProvide,
     InvalidLifecycleMethod,
@@ -28,6 +26,7 @@ from jab.exceptions import (
 )
 from jab.inspect import Dependency, Provided
 from jab.logging import DefaultJabLogger, Logger
+from typing_extensions import Protocol, _get_protocol_attrs  # type: ignore
 
 DEFAULT_LOGGER = "DEFAULT LOGGER"
 
