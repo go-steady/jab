@@ -356,7 +356,7 @@ class Harness:
                 f"Provided argument '{arg.__name__}' does not have a type-annotated constructor"
             )
 
-    def _on_start(self) -> bool:
+    async def _on_start(self) -> bool:
         """
         `_on_start` gathers and calls all `on_start` methods of the provided objects.
         The futures of the `on_start` methods are collected and awaited inside of the
@@ -405,7 +405,7 @@ class Harness:
 
                 try:
                     if iscoroutinefunction(self._env[x].on_start):
-                        self._loop.run_until_complete(self._env[x].on_start(**kwargs))
+                        await self._env[x].on_start(**kwargs)
                     else:
                         self._env[x].on_start(**kwargs)
                     self._logger.debug(f"Executed {x}.on_start()")
@@ -419,13 +419,13 @@ class Harness:
             return True
         except Exception as e:
             self._logger.critical(
-                f"Encoutnered an unexpected error during execution of on_start methods ({str(e)})"
+                f"Encountered an unexpected error during execution of on_start methods ({str(e)})"
             )
             return True
 
         return False
 
-    def _on_stop(self) -> None:
+    async def _on_stop(self) -> None:
         """
         `_on_stop` gathers and calls all `on_stop` methods of the provided objects.
         Unlike `_on_start` and `_run` it thee `on_stop` methods are called serially.
@@ -434,7 +434,7 @@ class Harness:
             try:
                 fn = self._env[x].on_stop
                 if iscoroutinefunction(fn):
-                    self._loop.run_until_complete(fn())
+                    await fn()
                 else:
                     fn()
                 self._logger.debug(f"Executed on_stop method for {x}")
@@ -472,12 +472,12 @@ class Harness:
         `run` executes the full lifecycle of the Harness. All `on_start` methods are executed, then all
         `run` methods, and finally all `on_stop` methods.
         """
-        interrupt = self._on_start()
+        interrupt = self._loop.run_until_complete(self._on_start())
 
         if not interrupt:
             self._run()
 
-        self._on_stop()
+        self._loop.run_until_complete(self._on_stop())
         self._loop.close()
 
 
