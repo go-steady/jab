@@ -5,6 +5,8 @@ name = "pypi"
 
 [packages]
 uvloop = "*"
+uvicorn = "*"
+gunicorn = "*"
 
 [dev-packages]
 pytest = "*"

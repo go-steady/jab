@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from inspect import isclass, iscoroutinefunction, isfunction, ismethod
 from typing import (
     Any,
@@ -16,6 +17,9 @@ from typing import (
 
 import toposort
 import uvloop
+from typing_extensions import Protocol, _get_protocol_attrs  # type: ignore
+
+import jab.asgi
 from jab.exceptions import (
     DuplicateProvide,
     InvalidLifecycleMethod,
@@ -26,7 +30,6 @@ from jab.exceptions import (
 )
 from jab.inspect import Dependency, Provided
 from jab.logging import DefaultJabLogger, Logger
-from typing_extensions import Protocol, _get_protocol_attrs  # type: ignore
 
 DEFAULT_LOGGER = "DEFAULT LOGGER"
 
@@ -479,6 +482,48 @@ class Harness:
 
         self._loop.run_until_complete(self._on_stop())
         self._loop.close()
+
+    def asgi(self, scope: dict) -> asgi.Handler:
+
+        if scope.get("type") == "lifespan":
+            return self._asgi_lifespan
+
+        if scope.get("type") == "http":
+            return self._asgi_http
+
+        if scope.get("type") == "websocket":
+            return self._asgi_ws
+
+        raise Exception
+
+    async def _asgi_lifespan(self, receive: asgi.Receive, send: asgi.Send) -> None:
+        while True:
+            msg = await receive()
+
+            if msg.get("type") == "lifespan.startup":
+                interrupt = await self._on_start()
+
+                status = (
+                    "lifespan.startup.failed"
+                    if interrupt
+                    else "lifespan.startup.complete"
+                )
+                await send({"type": status})
+
+                return
+
+            if msg.get("type") == "lifespan.shutdown":
+                print(msg)
+                await self._on_stop()
+                self._loop.close()
+                await send({"type": "lifespan.shutdown.complete"})
+                return
+
+    async def _asgi_http(self, receive: asgi.Receive, send: asgi.Send) -> None:
+        raise NotImplementedError
+
+    async def _asgi_ws(self, receive: asgi.Receive, send: asgi.Send) -> None:
+        raise NotImplementedError
 
 
 def isimplementation(cls_: Any, proto: Any) -> bool:

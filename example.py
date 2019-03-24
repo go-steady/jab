@@ -62,4 +62,4 @@ class Database:
         self._internal[key] = value
 
 
-jab.Harness().provide(API, Database, Routes).run()
+app = jab.Harness().provide(API, Database, Routes)
