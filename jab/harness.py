@@ -513,10 +513,9 @@ class Harness:
                 return
 
             if msg.get("type") == "lifespan.shutdown":
-                print(msg)
                 await self._on_stop()
-                self._loop.close()
                 await send({"type": "lifespan.shutdown.complete"})
+                self._loop.close()
                 return
 
     async def _asgi_http(self, receive: asgi.Receive, send: asgi.Send) -> None:
