@@ -17,7 +17,7 @@ from typing import (
 
 import toposort
 import uvloop
-from typing_extensions import Protocol, _get_protocol_attrs  # type: ignore
+from typing_extensions import Protocol  # type: ignore
 
 import jab.asgi
 from jab.exceptions import (
@@ -30,6 +30,7 @@ from jab.exceptions import (
 )
 from jab.inspect import Dependency, Provided
 from jab.logging import DefaultJabLogger, Logger
+from jab.search import isimplementation
 
 DEFAULT_LOGGER = "DEFAULT LOGGER"
 
@@ -519,57 +520,10 @@ class Harness:
                 return
 
     async def _asgi_http(self, receive: asgi.Receive, send: asgi.Send) -> None:
+        msg = await receive()
+        print(msg)
+        print(self._env.get("Routes").added)
         raise NotImplementedError
 
     async def _asgi_ws(self, receive: asgi.Receive, send: asgi.Send) -> None:
         raise NotImplementedError
-
-
-def isimplementation(cls_: Any, proto: Any) -> bool:
-    """
-    `isimplementation` checks to see if a provided class definition implement a provided Protocol definition.
-
-    Parameters
-    ----------
-    cls_ : Any
-        A concrete class defintiion
-    proto : Any
-        A protocol definition
-
-    Returns
-    -------
-    bool
-        Returns whether or not the provided class definition is a valid
-        implementation of the provided Protocol.
-    """
-    proto_annotations = get_type_hints(proto)
-    cls_annotations = get_type_hints(cls_)
-
-    for attr in _get_protocol_attrs(proto):
-        try:
-            proto_concrete = getattr(proto, attr)
-            cls_concrete = getattr(cls_, attr)
-        except AttributeError:
-            proto_concrete = proto_annotations.get(attr)
-            cls_concrete = cls_annotations.get(attr)
-
-        if cls_concrete is None:
-            return False
-
-        if isfunction(proto_concrete):
-            proto_signature = get_type_hints(proto_concrete)
-
-            try:
-                cls_signature = get_type_hints(cls_concrete)
-            except AttributeError:
-                return False
-
-            if proto_signature != cls_signature:
-                return False
-
-            continue
-
-        if cls_concrete != proto_concrete:
-            return False
-
-    return True
