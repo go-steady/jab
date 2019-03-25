@@ -490,10 +490,10 @@ class Harness:
             return self._asgi_lifespan
 
         if scope.get("type") == "http":
-            return self._asgi_http
+            return self._asgi_http(scope)
 
         if scope.get("type") == "websocket":
-            return self._asgi_ws
+            return self._asgi_ws(scope)
 
         raise Exception
 
@@ -534,8 +534,16 @@ class Harness:
                 self._loop.close()
                 return
 
-    async def _asgi_http(self, receive: Receive, send: Send) -> None:
-        await self._asgi_handler.asgi(receive, send)
+    def _asgi_http(self, scope: dict) -> Handler:
 
-    async def _asgi_ws(self, receive: Receive, send: Send) -> None:
-        await self._asgi_handler.asgi(receive, send)
+        async def handler(receive: Receive, send: Send) -> None:
+            await self._asgi_handler.asgi(scope, receive, send)
+
+        return handler
+
+    def _asgi_ws(self, scope: dict) -> Handler:
+
+        async def handler(receive: Receive, send: Send) -> None:
+            await self._asgi_handler.asgi(scope, receive, send)
+
+        return handler

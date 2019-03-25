@@ -19,7 +19,8 @@ class API:
         server = await self._sanic.create_server()
         await server.wait_closed()
 
-    async def asgi(self, receive: jab.Receive, send: jab.Send) -> None:
+    async def asgi(self, scope: dict, receive: jab.Receive, send: jab.Send) -> None:
+        print(scope)
         await send({
             'type': 'http.response.start',
             'status': 200,

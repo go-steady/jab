@@ -7,5 +7,5 @@ Handler = Callable[[Receive, Send], Awaitable[None]]
 
 
 class EventHandler(Protocol):
-    async def asgi(self, receive: Receive, send: Send) -> None:
+    async def asgi(self, scope: dict, receive: Receive, send: Send) -> None:
         pass
