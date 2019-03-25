@@ -5,17 +5,18 @@ name = "pypi"
 
 [packages]
 uvloop = "*"
-uvicorn = "*"
-gunicorn = "*"
+toposort = "*"
 
 [dev-packages]
 pytest = "*"
 typing-extensions = "*"
-toposort = "*"
 black = "*"
 isort = "*"
 pytest-cov = "*"
-sanic = "*"
+uvicorn = "*"
+gunicorn = "*"
+mypy = "*"
+flake8 = "*"
 
 [requires]
 python_version = "3.7"

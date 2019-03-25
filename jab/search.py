@@ -1,7 +1,7 @@
 from inspect import isfunction
 from typing import Any, get_type_hints
 
-from typing_extensions import _get_protocol_attrs
+from typing_extensions import _get_protocol_attrs  # type: ignore
 
 
 def isimplementation(cls_: Any, proto: Any) -> bool:

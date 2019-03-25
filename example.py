@@ -19,6 +19,21 @@ class API:
         server = await self._sanic.create_server()
         await server.wait_closed()
 
+    async def asgi(self, receive: jab.Receive, send: jab.Send) -> None:
+        await send({
+            'type': 'http.response.start',
+            'status': 200,
+            'headers': [
+                [b'content-type', b'text/plain'],
+            ]
+        })
+
+        await send({
+            'type': 'http.response.body',
+            'body': b'Hello, world!\n',
+        })
+        return
+
 
 class GetSetter(Protocol):
     def get(self, key: str) -> str:
@@ -36,6 +51,7 @@ class RouteAdder(Protocol):
 class Routes:
     def __init__(self, db: GetSetter) -> None:
         self.db = db
+        self.added = False
 
     async def get_secret(self, request: Request, name: str) -> HTTPResponse:
         value = self.db.get(name)
@@ -47,6 +63,7 @@ class Routes:
         return text("Successfully wrote to DB")
 
     async def on_start(self, app: RouteAdder) -> None:
+        self.added = True
         app.add_route(self.get_secret, "/secret/<name>", ["GET"])
         app.add_route(self.post_secret, "/secret", ["POST"])
 

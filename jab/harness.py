@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import sys
 from inspect import isclass, iscoroutinefunction, isfunction, ismethod
 from typing import (
     Any,
@@ -17,9 +16,9 @@ from typing import (
 
 import toposort
 import uvloop
-from typing_extensions import Protocol  # type: ignore
+from typing_extensions import Protocol
 
-import jab.asgi
+from jab.asgi import Send, Receive, Handler, EventHandler
 from jab.exceptions import (
     DuplicateProvide,
     InvalidLifecycleMethod,
@@ -51,6 +50,7 @@ class Harness:
         self._exec_order: List[str] = []
         self._loop = asyncio.get_event_loop()
         self._logger = DefaultJabLogger()
+        self._asgi_handler: EventHandler = None
 
     @overload
     def inspect(self) -> List[Provided]:
@@ -165,7 +165,7 @@ class Harness:
 
             if self._provided.get(name):
                 raise DuplicateProvide(
-                    f'Cannot provide object {arg} under name "{name}". Name is already taken by object {self._provided[name]}'
+                    f'Cannot provide object {arg} under name "{name}". Name is already taken by object {self._provided[name]}'  # NOQA
                 )
             self._provided[name] = arg
 
@@ -200,13 +200,13 @@ class Harness:
                     match = self._search_protocol(dep)
                     if match is None:
                         raise MissingDependency(
-                            f"Can't build depdencies for {name}. Missing suitable argument for parameter {key} [{str(dep)}]."
+                            f"Can't build depdencies for {name}. Missing suitable argument for parameter {key} [{str(dep)}]."  # NOQA
                         )
                 else:
                     match = self._search_concrete(dep)
                     if match is None:
                         raise MissingDependency(
-                            f"Can't build depdencies for {name}. Missing suitable argument for parameter {key} [{str(dep)}]."
+                            f"Can't build depdencies for {name}. Missing suitable argument for parameter {key} [{str(dep)}]."  # NOQA
                         )
 
                 concrete[key] = match
@@ -383,13 +383,13 @@ class Harness:
                         match = self._search_protocol(dep)
                         if match is None:
                             raise MissingDependency(
-                                f"Can't build dependencies for {x}'s on_start method. Missing suitable argument for parameter {key} [{str(dep)}]."
+                                f"Can't build dependencies for {x}'s on_start method. Missing suitable argument for parameter {key} [{str(dep)}]."  # NOQA
                             )
                     else:
                         match = self._search_concrete(dep)
                         if match is None:
                             raise MissingDependency(
-                                f"Can't build dependencies for {x}'s on_start method. Missing suitable argument for paramater {key} [{str(dep)}]."
+                                f"Can't build dependencies for {x}'s on_start method. Missing suitable argument for paramater {key} [{str(dep)}]."  # NOQA
                             )
 
                     map_[key] = match
@@ -484,7 +484,7 @@ class Harness:
         self._loop.run_until_complete(self._on_stop())
         self._loop.close()
 
-    def asgi(self, scope: dict) -> asgi.Handler:
+    def asgi(self, scope: dict) -> Handler:
 
         if scope.get("type") == "lifespan":
             return self._asgi_lifespan
@@ -497,12 +497,27 @@ class Harness:
 
         raise Exception
 
-    async def _asgi_lifespan(self, receive: asgi.Receive, send: asgi.Send) -> None:
+    async def _asgi_lifespan(self, receive: Receive, send: Send) -> None:
+        # search through the provided classes for something with a handler
+        # method and register that
+        for name, provided in self._env.items():
+            if isimplementation(type(provided), EventHandler):
+                if self._asgi_handler is not None:
+                    # TODO log a better warning
+                    print("there already is an _asgi_handler. not replacing it.")
+                    continue
+
+                self._asgi_handler = provided
+
+        if self._asgi_handler is None:
+            raise Exception  # TODO Write an actual exception
+
         while True:
             msg = await receive()
 
             if msg.get("type") == "lifespan.startup":
-                interrupt = await self._on_start()
+                interrupt = True
+                interrupt = interrupt and await self._on_start()
 
                 status = (
                     "lifespan.startup.failed"
@@ -519,11 +534,8 @@ class Harness:
                 self._loop.close()
                 return
 
-    async def _asgi_http(self, receive: asgi.Receive, send: asgi.Send) -> None:
-        msg = await receive()
-        print(msg)
-        print(self._env.get("Routes").added)
-        raise NotImplementedError
+    async def _asgi_http(self, receive: Receive, send: Send) -> None:
+        await self._asgi_handler.asgi(receive, send)
 
-    async def _asgi_ws(self, receive: asgi.Receive, send: asgi.Send) -> None:
-        raise NotImplementedError
+    async def _asgi_ws(self, receive: Receive, send: Send) -> None:
+        await self._asgi_handler.asgi(receive, send)
