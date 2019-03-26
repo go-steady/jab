@@ -16,6 +16,8 @@ from typing import (
 
 import toposort
 import uvloop
+from typing_extensions import Protocol, _get_protocol_attrs  # type: ignore
+
 from jab.exceptions import (
     DuplicateProvide,
     InvalidLifecycleMethod,
@@ -26,7 +28,6 @@ from jab.exceptions import (
 )
 from jab.inspect import Dependency, Provided
 from jab.logging import DefaultJabLogger, Logger
-from typing_extensions import Protocol, _get_protocol_attrs  # type: ignore
 
 DEFAULT_LOGGER = "DEFAULT LOGGER"
 
@@ -111,6 +112,14 @@ class Harness:
         if isfunction(arg):
             deps = get_type_hints(arg)
             t = deps["return"]
+
+            closures = arg.__closure__ or []
+            for free_var in closures:
+                try:
+                    t = free_var.cell_contents._jab
+                except AttributeError:
+                    pass
+
         else:
             deps = get_type_hints(arg.__init__)
 

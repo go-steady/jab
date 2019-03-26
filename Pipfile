@@ -4,12 +4,12 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+toposort = "*"
 uvloop = "*"
 
 [dev-packages]
 pytest = "*"
 typing-extensions = "*"
-toposort = "*"
 black = "*"
 isort = "*"
 pytest-cov = "*"
