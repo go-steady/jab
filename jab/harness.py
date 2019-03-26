@@ -123,10 +123,14 @@ class Harness:
         else:
             deps = get_type_hints(arg.__init__)
 
-        name, obj = next(
-            ((name, obj) for name, obj in self._env.items() if isinstance(obj, t)),
-            (None, None),
-        )
+        if isinstance(t, str):
+            name: Optional[str] = t
+            obj: Any = self._env[t]
+        else:
+            name, obj = next(
+                ((name, obj) for name, obj in self._env.items() if isinstance(obj, t)),
+                (None, None),
+            )
 
         if not name or not obj:
             raise UnknownConstructor(f"{arg} not registered with jab harness")
