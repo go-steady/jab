@@ -16,3 +16,7 @@ class InvalidLifecycleMethod(Exception):
 
 class UnknownConstructor(Exception):
     pass
+
+
+class DuplicateProvide(Exception):
+    pass

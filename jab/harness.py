@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from inspect import isclass, iscoroutinefunction, isfunction
+from inspect import isclass, iscoroutinefunction, isfunction, ismethod
 from typing import (
     Any,
     Callable,
@@ -16,7 +16,10 @@ from typing import (
 
 import toposort
 import uvloop
+from typing_extensions import Protocol, _get_protocol_attrs  # type: ignore
+
 from jab.exceptions import (
+    DuplicateProvide,
     InvalidLifecycleMethod,
     MissingDependency,
     NoAnnotation,
@@ -25,7 +28,6 @@ from jab.exceptions import (
 )
 from jab.inspect import Dependency, Provided
 from jab.logging import DefaultJabLogger, Logger
-from typing_extensions import Protocol, _get_protocol_attrs  # type: ignore
 
 DEFAULT_LOGGER = "DEFAULT LOGGER"
 
@@ -110,16 +112,28 @@ class Harness:
         if isfunction(arg):
             deps = get_type_hints(arg)
             t = deps["return"]
+
+            closures = arg.__closure__ or []
+            for free_var in closures:
+                try:
+                    t = free_var.cell_contents._jab
+                except AttributeError:
+                    pass
+
         else:
             deps = get_type_hints(arg.__init__)
 
-        name, obj = next(
-            ((name, obj) for name, obj in self._env.items() if isinstance(obj, t)),
-            (None, None),
-        )
+        if isinstance(t, str):
+            name: Optional[str] = t
+            obj: Any = self._env[t]
+        else:
+            name, obj = next(
+                ((name, obj) for name, obj in self._env.items() if isinstance(obj, t)),
+                (None, None),
+            )
 
         if not name or not obj:
-            raise UnknownConstructor("{} not registered with jab harness".format(arg))
+            raise UnknownConstructor(f"{arg} not registered with jab harness")
 
         matched = self._dep_graph[name]
 
@@ -151,7 +165,19 @@ class Harness:
             if isfunction(arg):
                 name = get_type_hints(arg)["return"].__name__
 
+                closures = arg.__closure__ or []
+                for free_var in closures:
+                    try:
+                        name = free_var.cell_contents._jab
+                    except AttributeError:
+                        pass
+
+            if self._provided.get(name):
+                raise DuplicateProvide(
+                    f'Cannot provide object {arg} under name "{name}". Name is already taken by object {self._provided[name]}'
+                )
             self._provided[name] = arg
+
         self._build_graph()
 
         return self
@@ -170,7 +196,6 @@ class Harness:
         for name, obj in self._provided.items():
             if isfunction(obj):
                 dependencies = get_type_hints(obj)
-                name = dependencies["return"].__name__
             else:
                 dependencies = get_type_hints(obj.__init__)
 
@@ -184,17 +209,13 @@ class Harness:
                     match = self._search_protocol(dep)
                     if match is None:
                         raise MissingDependency(
-                            "Can't build depdencies for {}. Missing suitable argument for parameter {} [{}].".format(  # NOQA
-                                name, key, str(dep)
-                            )
+                            f"Can't build depdencies for {name}. Missing suitable argument for parameter {key} [{str(dep)}]."
                         )
                 else:
                     match = self._search_concrete(dep)
                     if match is None:
                         raise MissingDependency(
-                            "Can't build depdencies for {}. Missing suitable argument for parameter {} [{}].".format(  # NOQA
-                                name, key, str(dep)
-                            )
+                            f"Can't build depdencies for {name}. Missing suitable argument for parameter {key} [{str(dep)}]."
                         )
 
                 concrete[key] = match
@@ -230,7 +251,9 @@ class Harness:
             kwargs = {k: self._env[v] for k, v in reqs.items()}
 
             if iscoroutinefunction(self._provided[x]):
-                self._env[x] = self._loop.run_until_complete(self._provided[x](**kwargs))
+                self._env[x] = self._loop.run_until_complete(
+                    self._provided[x](**kwargs)
+                )
             else:
                 self._env[x] = self._provided[x](**kwargs)
 
@@ -311,19 +334,22 @@ class Harness:
         _is_func = False
         if not isclass(arg):
             if not isfunction(arg):
-                raise NoConstructor(
-                    "Provided argument '{}' does not have a constructor function".format(
-                        str(arg)
-                    )
-                )
+                msg = f"Provided argument '{str(arg)}' not have a constructor function."
+                if ismethod(arg):
+                    if get_type_hints(arg)["return"] == Callable:
+                        raise NoConstructor(
+                            msg
+                            + " But it is a method that returns a possible constructor function."
+                            + " Consider adding a @property decorator."
+                        )
+
+                raise NoConstructor(msg)
             else:
                 _is_func = True
                 deps = get_type_hints(arg)
                 if len(deps) == 0 or deps.get("return") is None:
                     raise NoConstructor(
-                        "Provided argument '{}' does not have a constructor function".format(
-                            str(arg)
-                        )
+                        f"Provided argument '{str(arg)}' does not have a constructor function"
                     )
 
         try:
@@ -334,17 +360,13 @@ class Harness:
 
             if len(deps) == 0:
                 raise NoAnnotation(
-                    "Provided argument '{}' does not have a type-annotated constructor".format(
-                        arg.__name__
-                    )
+                    f"Provided argument '{arg.__name__}' does not have a type-annotated constructor"
                 )
         except AttributeError:
             # This can't actually be reached in Python 3.7+ but
             # better safe than sorry.
             raise NoAnnotation(
-                "Provided argument '{}' does not have a type-annotated constructor".format(
-                    arg.__name__
-                )  # pragma: no cover
+                f"Provided argument '{arg.__name__}' does not have a type-annotated constructor"
             )
 
     def _on_start(self) -> bool:
@@ -370,17 +392,13 @@ class Harness:
                         match = self._search_protocol(dep)
                         if match is None:
                             raise MissingDependency(
-                                "Can't build depdencies for {}'s on_start method. Missing suitable argument for parameter {} [{}].".format(  # NOQA
-                                    x, key, str(dep)
-                                )
+                                f"Can't build dependencies for {x}'s on_start method. Missing suitable argument for parameter {key} [{str(dep)}]."
                             )
                     else:
                         match = self._search_concrete(dep)
                         if match is None:
                             raise MissingDependency(
-                                "Can't build depdencies for {}'s on_start method. Missing suitable argument for parameter {} [{}].".format(  # NOQA
-                                    x, key, str(dep)
-                                )
+                                f"Can't build dependencies for {x}'s on_start method. Missing suitable argument for paramater {key} [{str(dep)}]."
                             )
 
                     map_[key] = match
@@ -403,7 +421,7 @@ class Harness:
                         self._loop.run_until_complete(self._env[x].on_start(**kwargs))
                     else:
                         self._env[x].on_start(**kwargs)
-                    self._logger.debug("Executed {}.on_start()".format(x))
+                    self._logger.debug(f"Executed {x}.on_start()")
                 except AttributeError:
                     pass
 
@@ -414,9 +432,7 @@ class Harness:
             return True
         except Exception as e:
             self._logger.critical(
-                "Encountered an unexpected error during execution of on_start methods ({})".format(
-                    str(e)
-                )
+                f"Encoutnered an unexpected error during execution of on_start methods ({str(e)})"
             )
             return True
 
@@ -434,7 +450,7 @@ class Harness:
                     self._loop.run_until_complete(fn())
                 else:
                     fn()
-                self._logger.debug("Executed on_stop method for {}".format(x))
+                self._logger.debug(f"Executed on_stop method for {x}")
             except AttributeError:
                 pass
 
@@ -448,11 +464,9 @@ class Harness:
         for x in self._exec_order:
             try:
                 if not iscoroutinefunction(self._env[x].run):
-                    raise InvalidLifecycleMethod(
-                        "{}.run must be an async method".format(x)
-                    )
+                    raise InvalidLifecycleMethod(f"{x}.run must be an async method")
                 run_awaits.append(self._env[x].run())
-                self._logger.debug("Added run method for {}".format(x))
+                self._logger.debug(f"Added run method for {x}")
             except AttributeError:
                 pass
 
@@ -463,9 +477,7 @@ class Harness:
             self._logger.critical("Keyboard interrupt during execution of run methods.")
         except Exception as e:
             self._logger.critical(
-                "Encountered unexpected error during execution of run methods ({})".format(
-                    str(e)
-                )
+                f"Encountered unexpected error during execution of run methods ({str(e)})"
             )
 
     def run(self) -> None:

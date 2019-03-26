@@ -1,11 +1,11 @@
-from jab.harness import Harness  # NOQA
 from jab.exceptions import (
+    InvalidLifecycleMethod,
+    MissingDependency,
     NoAnnotation,
     NoConstructor,
-    MissingDependency,
-    InvalidLifecycleMethod,
 )
-from jab.logging import Logger, DefaultJabLogger  # NOQA
+from jab.harness import Harness  # NOQA
+from jab.logging import DefaultJabLogger, Logger  # NOQA
 
 
 class Exceptions:
