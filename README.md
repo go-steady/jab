@@ -118,14 +118,31 @@ Note the `_jab` attribute of PostgresPool from above. When defining a class that
 
 `jab` looks for three special lifecycle methods in provided classes, `on_start`, `run`, and `on_stop`. While `on_start` and `on_stop` can be either synchronous and async methods, `run` _must_ be an async method.
 
-### on_start
+#### on_start
 
 When `run` is called on a jab harness it moves through three states, the first of which is `on_start`. The harness iterates through all of the objects in its internal environment and any object that has an `on_start` method has that method called. The main thread of the harness blocks until all `on_start` methods have completed. `on_start` methods are the only `jab` lifecycle methods that can take arguments. Any arguments passed into an `on_start` method must be provided to the harness as you would any other dependency. Like with instance instantiation, `on_start` methods will ensure that an `on_start` method's dependencies are called before it is called itself.
 
-### run
+#### run
 
 After the `on_start` methods have been called, the harness iterates throguh the objects again and calls all `run` methods simultaneously. Again the main routine blocks until all `run` methods have completed.
 
-### on_stop
+#### on_stop
 
 After all `run` methods have completed, the harness interates through all of the objects and looks for `on_stop` methods. `on_stop` can be either synchronous or asynchronously defined. The `on_stop` methods are called serially with any asynchronous method effectively run synchronusly.
+
+### ASGI Interfaces
+
+The jab harness exposes itself under an ASGI interface to be used with ASGI servers like uvicorn, hypercorn, or daphne. You can read up on the ASGI standard [here](https://github.com/django/asgiref/blob/master/specs/asgi.rst). While the jab harness implements a legacy ASGI v2 interface, the protocol the jab harness searches its environment for is an ASGI v3 interface.
+
+```python
+class EventHandler(Protocol):
+    async def asgi(self, scope: dict, receive: Callable[[], Awaitable[dict]], send: Callable[[dict], Awaitable[None]] -> None:
+        pass
+```
+
+If multiple classes satisfying this protocol are provided to the jab harness only the first class will receive the ASGI messages.
+
+*Example Usage*
+```
+$ uvicorn --reload {file}:harness.asgi
+```
