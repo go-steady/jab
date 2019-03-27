@@ -116,7 +116,7 @@ Note the `_jab` attribute of PostgresPool from above. When defining a class that
 
 While it is always an option to declare your closure provider yourself, `jab` exposes a convenient decorator to wrap your classes in to make things easier. The example above could further be written as:
 
-```pyton
+```python
 @jab.closure
 class PostgresPool:
     def __init__(self, dsn: str) -> None:
@@ -128,7 +128,6 @@ class PostgresPool:
 pool = PostgresPool("postgres://localhost")
 
 jab.Harness().provide(...other_deps, pool.jab).run()
-
 ```
 
 The decorator will take care of creating the `PostgresPool.jab` property method as well as creating a unique `PostgresPool._jab` value for each individual instance, ensuring that multiple instances of the same class can be passed into a jab harness and that each instance may only pass itself into the jab harness once.
