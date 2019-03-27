@@ -136,7 +136,7 @@ The jab harness exposes itself under an ASGI interface to be used with ASGI serv
 
 ```python
 class EventHandler(Protocol):
-    async def asgi(self, scope: dict, receive: Callable[[], Awaitable[dict]], send: Callable[[dict], Awaitable[None]] -> None:
+    async def asgi(self, scope: dict, receive: Callable[[], Awaitable[dict]], send: Callable[[dict], Awaitable[None]]) -> None:
         pass
 ```
 
