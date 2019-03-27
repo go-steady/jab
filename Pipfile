@@ -6,10 +6,10 @@ name = "pypi"
 [packages]
 uvloop = "*"
 toposort = "*"
+typing_extensions = "*"
 
 [dev-packages]
 pytest = "*"
-typing-extensions = "*"
 black = "*"
 isort = "*"
 pytest-cov = "*"
