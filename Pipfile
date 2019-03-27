@@ -4,16 +4,19 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-toposort = "*"
 uvloop = "*"
+toposort = "*"
+typing_extensions = "*"
 
 [dev-packages]
 pytest = "*"
-typing-extensions = "*"
 black = "*"
 isort = "*"
 pytest-cov = "*"
-sanic = "*"
+uvicorn = "*"
+gunicorn = "*"
+mypy = "*"
+flake8 = "*"
 
 [requires]
 python_version = "3.7"

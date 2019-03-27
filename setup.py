@@ -4,9 +4,9 @@ from distutils.core import setup
 if not (sys.version_info.major >= 3 and sys.version_info.minor >= 7):
     raise Exception("jab only works with Python 3.7+")
 
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 
-dependencies = ["typing_extensions", "toposort"]
+DEPENDENCIES = ["typing_extensions", "toposort", "uvloop"]
 
 setup(
     name="jab",
@@ -15,5 +15,5 @@ setup(
     packages=["jab"],
     platforms="ANY",
     url="https://github.com/stntngo/jab",
-    install_requires=dependencies,
+    install_requires=DEPENDENCIES,
 )

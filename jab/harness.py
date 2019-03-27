@@ -16,8 +16,9 @@ from typing import (
 
 import toposort
 import uvloop
-from typing_extensions import Protocol, _get_protocol_attrs  # type: ignore
+from typing_extensions import Protocol
 
+from jab.asgi import Send, Receive, Handler, EventHandler
 from jab.exceptions import (
     DuplicateProvide,
     InvalidLifecycleMethod,
@@ -28,6 +29,7 @@ from jab.exceptions import (
 )
 from jab.inspect import Dependency, Provided
 from jab.logging import DefaultJabLogger, Logger
+from jab.search import isimplementation
 
 DEFAULT_LOGGER = "DEFAULT LOGGER"
 
@@ -48,6 +50,7 @@ class Harness:
         self._exec_order: List[str] = []
         self._loop = asyncio.get_event_loop()
         self._logger = DefaultJabLogger()
+        self._asgi_handler: EventHandler = None
 
     @overload
     def inspect(self) -> List[Provided]:
@@ -174,7 +177,7 @@ class Harness:
 
             if self._provided.get(name):
                 raise DuplicateProvide(
-                    f'Cannot provide object {arg} under name "{name}". Name is already taken by object {self._provided[name]}'
+                    f'Cannot provide object {arg} under name "{name}". Name is already taken by object {self._provided[name]}'  # NOQA
                 )
             self._provided[name] = arg
 
@@ -209,13 +212,13 @@ class Harness:
                     match = self._search_protocol(dep)
                     if match is None:
                         raise MissingDependency(
-                            f"Can't build depdencies for {name}. Missing suitable argument for parameter {key} [{str(dep)}]."
+                            f"Can't build depdencies for {name}. Missing suitable argument for parameter {key} [{str(dep)}]."  # NOQA
                         )
                 else:
                     match = self._search_concrete(dep)
                     if match is None:
                         raise MissingDependency(
-                            f"Can't build depdencies for {name}. Missing suitable argument for parameter {key} [{str(dep)}]."
+                            f"Can't build depdencies for {name}. Missing suitable argument for parameter {key} [{str(dep)}]."  # NOQA
                         )
 
                 concrete[key] = match
@@ -369,7 +372,7 @@ class Harness:
                 f"Provided argument '{arg.__name__}' does not have a type-annotated constructor"
             )
 
-    def _on_start(self) -> bool:
+    async def _on_start(self) -> bool:
         """
         `_on_start` gathers and calls all `on_start` methods of the provided objects.
         The futures of the `on_start` methods are collected and awaited inside of the
@@ -392,13 +395,13 @@ class Harness:
                         match = self._search_protocol(dep)
                         if match is None:
                             raise MissingDependency(
-                                f"Can't build dependencies for {x}'s on_start method. Missing suitable argument for parameter {key} [{str(dep)}]."
+                                f"Can't build dependencies for {x}'s on_start method. Missing suitable argument for parameter {key} [{str(dep)}]."  # NOQA
                             )
                     else:
                         match = self._search_concrete(dep)
                         if match is None:
                             raise MissingDependency(
-                                f"Can't build dependencies for {x}'s on_start method. Missing suitable argument for paramater {key} [{str(dep)}]."
+                                f"Can't build dependencies for {x}'s on_start method. Missing suitable argument for paramater {key} [{str(dep)}]."  # NOQA
                             )
 
                     map_[key] = match
@@ -418,7 +421,7 @@ class Harness:
 
                 try:
                     if iscoroutinefunction(self._env[x].on_start):
-                        self._loop.run_until_complete(self._env[x].on_start(**kwargs))
+                        await self._env[x].on_start(**kwargs)
                     else:
                         self._env[x].on_start(**kwargs)
                     self._logger.debug(f"Executed {x}.on_start()")
@@ -432,13 +435,13 @@ class Harness:
             return True
         except Exception as e:
             self._logger.critical(
-                f"Encoutnered an unexpected error during execution of on_start methods ({str(e)})"
+                f"Encountered an unexpected error during execution of on_start methods ({str(e)})"
             )
             return True
 
         return False
 
-    def _on_stop(self) -> None:
+    async def _on_stop(self) -> None:
         """
         `_on_stop` gathers and calls all `on_stop` methods of the provided objects.
         Unlike `_on_start` and `_run` it thee `on_stop` methods are called serially.
@@ -447,7 +450,7 @@ class Harness:
             try:
                 fn = self._env[x].on_stop
                 if iscoroutinefunction(fn):
-                    self._loop.run_until_complete(fn())
+                    await fn()
                 else:
                     fn()
                 self._logger.debug(f"Executed on_stop method for {x}")
@@ -485,60 +488,74 @@ class Harness:
         `run` executes the full lifecycle of the Harness. All `on_start` methods are executed, then all
         `run` methods, and finally all `on_stop` methods.
         """
-        interrupt = self._on_start()
+        interrupt = self._loop.run_until_complete(self._on_start())
 
         if not interrupt:
             self._run()
 
-        self._on_stop()
+        self._loop.run_until_complete(self._on_stop())
         self._loop.close()
 
+    def asgi(self, scope: dict) -> Handler:
 
-def isimplementation(cls_: Any, proto: Any) -> bool:
-    """
-    `isimplementation` checks to see if a provided class definition implement a provided Protocol definition.
+        if scope.get("type") == "lifespan":
+            return self._asgi_lifespan
 
-    Parameters
-    ----------
-    cls_ : Any
-        A concrete class defintiion
-    proto : Any
-        A protocol definition
+        if scope.get("type") == "http":
+            return self._asgi_http(scope)
 
-    Returns
-    -------
-    bool
-        Returns whether or not the provided class definition is a valid
-        implementation of the provided Protocol.
-    """
-    proto_annotations = get_type_hints(proto)
-    cls_annotations = get_type_hints(cls_)
+        if scope.get("type") == "websocket":
+            return self._asgi_ws(scope)
 
-    for attr in _get_protocol_attrs(proto):
-        try:
-            proto_concrete = getattr(proto, attr)
-            cls_concrete = getattr(cls_, attr)
-        except AttributeError:
-            proto_concrete = proto_annotations.get(attr)
-            cls_concrete = cls_annotations.get(attr)
+        raise Exception
 
-        if cls_concrete is None:
-            return False
+    async def _asgi_lifespan(self, receive: Receive, send: Send) -> None:
+        # search through the provided classes for something with a handler
+        # method and register that
+        for name, provided in self._env.items():
+            if isimplementation(type(provided), EventHandler):
+                if self._asgi_handler is not None:
+                    # TODO log a better warning
+                    print("there already is an _asgi_handler. not replacing it.")
+                    continue
 
-        if isfunction(proto_concrete):
-            proto_signature = get_type_hints(proto_concrete)
+                self._asgi_handler = provided
 
-            try:
-                cls_signature = get_type_hints(cls_concrete)
-            except AttributeError:
-                return False
+        if self._asgi_handler is None:
+            raise Exception  # TODO Write an actual exception
 
-            if proto_signature != cls_signature:
-                return False
+        while True:
+            msg = await receive()
 
-            continue
+            if msg.get("type") == "lifespan.startup":
+                interrupt = True
+                interrupt = interrupt and await self._on_start()
 
-        if cls_concrete != proto_concrete:
-            return False
+                status = (
+                    "lifespan.startup.failed"
+                    if interrupt
+                    else "lifespan.startup.complete"
+                )
+                await send({"type": status})
 
-    return True
+                return
+
+            if msg.get("type") == "lifespan.shutdown":
+                await self._on_stop()
+                await send({"type": "lifespan.shutdown.complete"})
+                self._loop.close()
+                return
+
+    def _asgi_http(self, scope: dict) -> Handler:
+
+        async def handler(receive: Receive, send: Send) -> None:
+            await self._asgi_handler.asgi(scope, receive, send)
+
+        return handler
+
+    def _asgi_ws(self, scope: dict) -> Handler:
+
+        async def handler(receive: Receive, send: Send) -> None:
+            await self._asgi_handler.asgi(scope, receive, send)
+
+        return handler
