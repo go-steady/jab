@@ -1,8 +1,10 @@
 from inspect import isfunction
 from typing import get_type_hints
-from dataclasses import dataclass
-import jab
+
 import pytest
+
+import jab
+from dataclasses import dataclass
 
 
 @jab.closure
@@ -47,7 +49,6 @@ def test_closure_jab_flag():
 
 
 def test_play_well_with_others():
-
     @jab.closure
     @dataclass
     class User:

@@ -131,7 +131,7 @@ jab.Harness().provide(...other_deps, pool.jab).run()
 
 ```
 
-The decorator will take care of creating the `PostgresPool.jab` method as well as creating a unique `PostgresPool._jab` value for each individual instance, ensuring that multiple instances of the same class can be passed into a jab harness and that each instance may only pass itself into the jab harness once.
+The decorator will take care of creating the `PostgresPool.jab` property method as well as creating a unique `PostgresPool._jab` value for each individual instance, ensuring that multiple instances of the same class can be passed into a jab harness and that each instance may only pass itself into the jab harness once.
 
 ### Lifecycle Methods
 

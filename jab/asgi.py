@@ -1,4 +1,5 @@
 from typing import Awaitable, Callable
+
 from typing_extensions import Protocol
 
 Receive = Callable[[], Awaitable[dict]]

@@ -18,7 +18,7 @@ import toposort
 import uvloop
 from typing_extensions import Protocol
 
-from jab.asgi import Send, Receive, Handler, EventHandler
+from jab.asgi import EventHandler, Handler, Receive, Send
 from jab.exceptions import (
     DuplicateProvide,
     InvalidLifecycleMethod,
@@ -547,14 +547,12 @@ class Harness:
                 return
 
     def _asgi_http(self, scope: dict) -> Handler:
-
         async def handler(receive: Receive, send: Send) -> None:
             await self._asgi_handler.asgi(scope, receive, send)
 
         return handler
 
     def _asgi_ws(self, scope: dict) -> Handler:
-
         async def handler(receive: Receive, send: Send) -> None:
             await self._asgi_handler.asgi(scope, receive, send)
 

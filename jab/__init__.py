@@ -3,7 +3,7 @@ from jab.exceptions import (
     MissingDependency,
     NoAnnotation,
     NoConstructor,
-    DuplicateProvide
+    DuplicateProvide,
 )
 from jab.harness import Harness  # NOQA
 from jab.logging import DefaultJabLogger, Logger  # NOQA

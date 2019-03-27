@@ -1,9 +1,9 @@
-from typing import Callable, Type, Any
+from typing import Any, Callable, Type
+
 from typing_extensions import Protocol
 
 
 class Instance(Protocol):
-
     def __setattr__(self, name: str, value: Any) -> None:
         pass
 
