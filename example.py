@@ -21,18 +21,15 @@ class API:
 
     async def asgi(self, scope: dict, receive: jab.Receive, send: jab.Send) -> None:
         print(scope)
-        await send({
-            'type': 'http.response.start',
-            'status': 200,
-            'headers': [
-                [b'content-type', b'text/plain'],
-            ]
-        })
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [[b"content-type", b"text/plain"]],
+            }
+        )
 
-        await send({
-            'type': 'http.response.body',
-            'body': b'Hello, world!\n',
-        })
+        await send({"type": "http.response.body", "body": b"Hello, world!\n"})
         return
 
 

@@ -1,4 +1,4 @@
-# 💉  jab ![jab-version](https://img.shields.io/badge/version-0.3.0-orange.svg) ![py-version](https://img.shields.io/badge/python-3.7-blue.svg) ![codecov](https://img.shields.io/badge/coverage-83%25-yellowgreen.svg)
+# 💉  jab ![jab-version](https://img.shields.io/badge/version-0.3.1-orange.svg) ![py-version](https://img.shields.io/badge/python-3.7-blue.svg) ![codecov](https://img.shields.io/badge/coverage-85%25-yellowgreen.svg)
 ###### A Python Dependency Injection Framework
 
 `jab` is heavily inspired by [uber-go/fx](https://github.com/uber-go/fx).
@@ -113,6 +113,25 @@ jab.Harness().provide(...other_deps, pool.jab).run()
 ```
 
 Note the `_jab` attribute of PostgresPool from above. When defining a class that will have a closure constructor method and you are planning to provide multiple instances of the same class to the jab harness the `_jab` attribute will allow two instances of the same class to co-exist under different names so long as their `_jab` attributes are different.
+
+While it is always an option to declare your closure provider yourself, `jab` exposes a convenient decorator to wrap your classes in to make things easier. The example above could further be written as:
+
+```pyton
+@jab.closure
+class PostgresPool:
+    def __init__(self, dsn: str) -> None:
+    	self._jab = dsn
+        self.dsn = dsn
+	self.connection = self.connect()
+
+
+pool = PostgresPool("postgres://localhost")
+
+jab.Harness().provide(...other_deps, pool.jab).run()
+
+```
+
+The decorator will take care of creating the `PostgresPool.jab` property method as well as creating a unique `PostgresPool._jab` value for each individual instance, ensuring that multiple instances of the same class can be passed into a jab harness and that each instance may only pass itself into the jab harness once.
 
 ### Lifecycle Methods
 
