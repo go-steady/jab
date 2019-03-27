@@ -1,5 +1,6 @@
 from inspect import isfunction
 from typing import get_type_hints
+from dataclasses import dataclass
 import jab
 import pytest
 
@@ -43,3 +44,18 @@ def test_closure_jab_flag():
 
     with pytest.raises(jab.Exceptions.DuplicateProvide):
         jab.Harness().provide(y.jab, y.jab)
+
+
+def test_play_well_with_others():
+
+    @jab.closure
+    @dataclass
+    class User:
+        name: str
+        email: str
+        password: str
+
+    user_one = User(name="Dave", email="hal@9000.net", password="imsorry")
+
+    assert user_one is user_one.jab()
+    assert user_one.name == "Dave"
