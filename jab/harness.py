@@ -162,6 +162,11 @@ class Harness:
             Each element of args must be a class definition with a type-annotated constructor.
         """
         for arg in args:
+
+            if isinstance(arg, Harness):
+                self.provide(*arg._provided.values())
+                continue
+
             self._check_provide(arg)
             name = arg.__name__
 

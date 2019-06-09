@@ -163,6 +163,14 @@ def test_harness() -> None:
     assert app._env["ClassBasic"].get_thing() == "Hello, 5!"
 
 
+def test_mult_harness() -> None:
+    first = jab.Harness().provide(ClassNew, ConcreteNumber)
+    app = jab.Harness().provide(first, ClassBasic)
+    app.build()
+    assert app._env["ClassNew"].t is app._env["ClassBasic"]
+    assert app._env["ClassBasic"].get_thing() == "Hello, 5!"
+
+
 def test_no_annotation() -> None:
     with pytest.raises(jab.Exceptions.NoAnnotation):
         jab.Harness().provide(MissingAnnotations)
