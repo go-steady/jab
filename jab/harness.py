@@ -343,7 +343,7 @@ class Harness:
         _is_func = False
         if not isclass(arg):
             if not isfunction(arg):
-                msg = f"Provided argument '{str(arg)}' not have a constructor function."
+                msg = f"Provided argument '{str(arg)}' does not have a constructor function."
                 if ismethod(arg):
                     if get_type_hints(arg)["return"] == Callable:
                         raise NoConstructor(
