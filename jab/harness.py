@@ -181,7 +181,7 @@ class Harness:
                 )
             self._provided[name] = arg
 
-        self._build_graph()
+        self._build_env()
 
         return self
 
@@ -224,8 +224,6 @@ class Harness:
                 concrete[key] = match
             self._dep_graph[name] = concrete
 
-        self._build_env()
-
     def _build_env(self) -> None:
         """
         `build_env` takes the dependency graph and topologically sorts
@@ -238,6 +236,8 @@ class Harness:
             If a circular dependency exists in the provided objects this function
             will fail.
         """
+        self._build_graph()
+
         deps = {}
 
         for k, v in self._dep_graph.items():
