@@ -181,8 +181,6 @@ class Harness:
                 )
             self._provided[name] = arg
 
-        self._build_env()
-
         return self
 
     def _build_graph(self) -> None:
@@ -223,6 +221,9 @@ class Harness:
 
                 concrete[key] = match
             self._dep_graph[name] = concrete
+
+    def build(self) -> None:
+        self._build_env()
 
     def _build_env(self) -> None:
         """
@@ -488,6 +489,8 @@ class Harness:
         `run` executes the full lifecycle of the Harness. All `on_start` methods are executed, then all
         `run` methods, and finally all `on_stop` methods.
         """
+        self.build()
+
         interrupt = self._loop.run_until_complete(self._on_start())
 
         if not interrupt:
@@ -528,6 +531,7 @@ class Harness:
             msg = await receive()
 
             if msg.get("type") == "lifespan.startup":
+                self.build()
                 interrupt = True
                 interrupt = interrupt and await self._on_start()
 
