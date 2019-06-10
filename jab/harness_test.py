@@ -158,6 +158,15 @@ def FunctionalRequire(c: Counter) -> NeedsCounter:
 
 def test_harness() -> None:
     app = jab.Harness().provide(ClassNew, ClassBasic, ConcreteNumber)
+    app.build()
+    assert app._env["ClassNew"].t is app._env["ClassBasic"]
+    assert app._env["ClassBasic"].get_thing() == "Hello, 5!"
+
+
+def test_mult_harness() -> None:
+    first = jab.Harness().provide(ClassNew, ConcreteNumber)
+    app = jab.Harness().provide(first, ClassBasic)
+    app.build()
     assert app._env["ClassNew"].t is app._env["ClassBasic"]
     assert app._env["ClassBasic"].get_thing() == "Hello, 5!"
 
@@ -169,7 +178,7 @@ def test_no_annotation() -> None:
 
 def test_missing_dep() -> None:
     with pytest.raises(jab.Exceptions.MissingDependency):
-        jab.Harness().provide(ClassNew)
+        jab.Harness().provide(ClassNew).build()
 
 
 def test_sync_run() -> None:
@@ -179,12 +188,12 @@ def test_sync_run() -> None:
 
 def test_circular_dependency() -> None:
     with pytest.raises(toposort.CircularDependencyError):
-        jab.Harness().provide(CircleOne, CircleTwo)
+        jab.Harness().provide(CircleOne, CircleTwo).build()
 
 
 def test_missing_protocol() -> None:
     with pytest.raises(jab.Exceptions.MissingDependency):
-        jab.Harness().provide(CircleOne)
+        jab.Harness().provide(CircleOne).build()
 
 
 def test_non_class_provide() -> None:
@@ -198,6 +207,7 @@ def test_on_start() -> None:
 
 def test_logger() -> None:
     harness = jab.Harness().provide(NeedsLogger)
+    harness.build()
     assert harness._env["NeedsLogger"].log is harness._logger
 
 
@@ -210,12 +220,14 @@ def test_arugments_in_on_start() -> None:
 
 def test_functional_constructor() -> None:
     h = jab.Harness().provide(ProvideCounter, NeedsCounter)
+    h.build()
     assert h._env["Counter"] is h._env["NeedsCounter"].c
     assert h._env["Counter"]["test"] == 2
 
 
 def test_concrete_function_protocol_need() -> None:
     h = jab.Harness().provide(NeedsShouter, ProvidesShouter)
+    h.build()
     assert h._env["NeedsShouter"].s.shout() == "HELLO"
 
 
@@ -235,6 +247,8 @@ def test_inspect() -> None:
     h = jab.Harness().provide(
         ProvideCounter, NeedsCounter, NeedsShouter, ProvidesShouter
     )
+
+    h.build()
 
     for x in h.inspect():
         assert x == h.inspect(x.constructor)
