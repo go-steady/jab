@@ -45,7 +45,10 @@ jobs:
       - run:
           name: code coverage
           command: |
-            pipenv run python -m pytest --cov-report=html --cov=jab/ test/
+            pipenv run python -m pytest --cov-report=xml --cov=jab/ test/
 
-      - store_artifacts:
-          path: htmlcov
+      - run:
+          name: codecov upload
+          command: |
+            pipenv install codecov
+            pipenv run codecov

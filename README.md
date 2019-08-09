@@ -1,4 +1,4 @@
-# 💉  jab ![jab-version](https://img.shields.io/badge/version-0.3.1-orange.svg) ![py-version](https://img.shields.io/badge/python-3.7-blue.svg) ![codecov](https://img.shields.io/badge/coverage-85%25-yellowgreen.svg) [![CircleCI](https://circleci.com/gh/stntngo/jab/tree/master.svg?style=svg)](https://circleci.com/gh/stntngo/jab/tree/master)
+# 💉  jab ![jab-version](https://img.shields.io/badge/version-0.3.1-orange.svg) ![py-version](https://img.shields.io/badge/python-3.7-blue.svg) [![codecov](https://codecov.io/gh/stntngo/jab/branch/master/graph/badge.svg)](https://codecov.io/gh/stntngo/jab) [![CircleCI](https://circleci.com/gh/stntngo/jab/tree/master.svg?style=svg)](https://circleci.com/gh/stntngo/jab/tree/master)
 ###### A Python Dependency Injection Framework
 
 `jab` is heavily inspired by [uber-go/fx](https://github.com/uber-go/fx).
