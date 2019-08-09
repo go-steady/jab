@@ -41,3 +41,11 @@ jobs:
           name: ensure black format
           command: |
             pipenv run black -l 110 . --check
+
+      - run:
+          name: code coverage
+          command: |
+            pipenv run python -m pytest --cov-report=html --cov=jab/ test/
+
+      - store_artifacts:
+          path: htmlcov
