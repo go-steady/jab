@@ -244,9 +244,7 @@ def test_bad_function() -> None:
 
 
 def test_inspect() -> None:
-    h = jab.Harness().provide(
-        ProvideCounter, NeedsCounter, NeedsShouter, ProvidesShouter
-    )
+    h = jab.Harness().provide(ProvideCounter, NeedsCounter, NeedsShouter, ProvidesShouter)
 
     h.build()
 
