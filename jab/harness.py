@@ -2,17 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from inspect import isclass, iscoroutinefunction, isfunction, ismethod
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Type,
-    Union,
-    get_type_hints,
-    overload,
-)
+from typing import Any, Callable, Dict, List, Optional, Type, Union, get_type_hints, overload
 
 import toposort
 import uvloop
@@ -131,8 +121,7 @@ class Harness:
             obj: Any = self._env[t]
         else:
             name, obj = next(
-                ((name, obj) for name, obj in self._env.items() if isinstance(obj, t)),
-                (None, None),
+                ((name, obj) for name, obj in self._env.items() if isinstance(obj, t)), (None, None)
             )
 
         if not name or not obj:
@@ -141,11 +130,7 @@ class Harness:
         matched = self._dep_graph[name]
 
         dependencies = [
-            Dependency(
-                provided=self._build_inspect(self._provided[x]),
-                parameter=p,
-                type=deps[p],
-            )
+            Dependency(provided=self._build_inspect(self._provided[x]), parameter=p, type=deps[p])
             for p, x in matched.items()
         ]
 
@@ -260,9 +245,7 @@ class Harness:
             kwargs = {k: self._env[v] for k, v in reqs.items()}
 
             if iscoroutinefunction(self._provided[x]):
-                self._env[x] = self._loop.run_until_complete(
-                    self._provided[x](**kwargs)
-                )
+                self._env[x] = self._loop.run_until_complete(self._provided[x](**kwargs))
             else:
                 self._env[x] = self._provided[x](**kwargs)
 
@@ -435,9 +418,7 @@ class Harness:
                     pass
 
         except KeyboardInterrupt:
-            self._logger.critical(
-                "Keyboard interrupt during execution of on_start methods."
-            )
+            self._logger.critical("Keyboard interrupt during execution of on_start methods.")
             return True
         except Exception as e:
             self._logger.critical(
@@ -485,9 +466,7 @@ class Harness:
         except KeyboardInterrupt:
             self._logger.critical("Keyboard interrupt during execution of run methods.")
         except Exception as e:
-            self._logger.critical(
-                f"Encountered unexpected error during execution of run methods ({str(e)})"
-            )
+            self._logger.critical(f"Encountered unexpected error during execution of run methods ({str(e)})")
 
     def run(self) -> None:
         """
@@ -540,11 +519,7 @@ class Harness:
                 interrupt = True
                 interrupt = interrupt and await self._on_start()
 
-                status = (
-                    "lifespan.startup.failed"
-                    if interrupt
-                    else "lifespan.startup.complete"
-                )
+                status = "lifespan.startup.failed" if interrupt else "lifespan.startup.complete"
                 await send({"type": status})
 
                 return
