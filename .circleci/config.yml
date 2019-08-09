@@ -38,6 +38,11 @@ jobs:
             pipenv run python -m pytest .
 
       - run:
+          name: run mypy
+          command: |
+            pipenv run mypy jab/ --ignore-missing-imports
+
+      - run:
           name: ensure black format
           command: |
             pipenv run black -l 110 . --check

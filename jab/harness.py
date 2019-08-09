@@ -8,7 +8,7 @@ import toposort
 import uvloop
 from typing_extensions import Protocol
 
-from jab.asgi import EventHandler, Handler, Receive, Send
+from jab.asgi import EventHandler, Handler, Receive, Send, NoopHandler
 from jab.exceptions import (
     DuplicateProvide,
     InvalidLifecycleMethod,
@@ -40,15 +40,15 @@ class Harness:
         self._exec_order: List[str] = []
         self._loop = asyncio.get_event_loop()
         self._logger = DefaultJabLogger()
-        self._asgi_handler: EventHandler = None
+        self._asgi_handler: EventHandler = NoopHandler()
 
     @overload
     def inspect(self) -> List[Provided]:
-        pass
+        pass  # pragma: no cover
 
     @overload  # noqa: F811
     def inspect(self, arg: Union[Type, Callable]) -> Provided:
-        pass
+        pass  # pragma: no cover
 
     def inspect(  # noqa: F811
         self, arg: Optional[Union[Type, Callable]] = None
