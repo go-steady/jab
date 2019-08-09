@@ -26,6 +26,7 @@ jobs:
           name: install deps
           command: |
             pipenv install --dev --deploy
+            pip install codecov
 
       # - save_cache:
       #     paths:
@@ -45,7 +46,9 @@ jobs:
       - run:
           name: code coverage
           command: |
-            pipenv run python -m pytest --cov-report=html --cov=jab/ test/
+            pipenv run python -m pytest --cov-report=xml --cov=jab/ test/
 
-      - store_artifacts:
-          path: htmlcov
+      - run:
+          name: upload codecov
+          command: |
+            codecov
