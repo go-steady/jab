@@ -27,5 +27,5 @@ allow_prereleases = true
 
 [scripts]
 test = "python -m pytest ."
-test-cov = "python -m pytest --cov-report term --cov=jab/ --omit=*_test.py jab/"
+test-cov = "python -m pytest --cov-report term --cov=jab/ test/"
 black = "python -m black -l 110 ."
