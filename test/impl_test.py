@@ -84,7 +84,7 @@ def overloaded():
             pass
 
         @final  # noqa: F811
-        def names(self, namers):
+        def names(self, namers: Union[List[Namer], Namer]) -> Union[List[str], str]:
             if isinstance(namers, Namer):
                 return namers.name()
 
@@ -97,6 +97,46 @@ def overloaded():
     return (Overloaded, Names)
 
 
-def test_overloaded(overloaded):
+def test_good_overloaded(overloaded):
     Overloaded, Names = overloaded
     assert isimplementation(Overloaded, Names)
+
+
+@pytest.fixture()
+def bad_overloaded():
+    class Namer:
+        def __init__(self, name) -> None:
+            self._name = name
+
+        def name(self) -> str:
+            return self._name
+
+    class Overloaded:
+        def __init__(self) -> None:
+            pass
+
+        @overload
+        def names(self, namers: List[Namer]) -> List[str]:
+            pass
+
+        @overload  # noqa: F811
+        def names(self, namers: Namer) -> str:
+            pass
+
+        @final  # noqa: F811
+        def names(self, namers: Union[List[Namer], Namer]) -> Union[List[str], str]:
+            if isinstance(namers, Namer):
+                return [namers.name()]
+
+            return namers[0].name()
+
+    class Names(Protocol):
+        def names(self, namers: Namer) -> str:
+            pass
+
+    return (Overloaded, Names)
+
+
+def test_bad_overloaded(bad_overloaded):
+    Overloaded, Names = bad_overloaded
+    assert not isimplementation(Overloaded, Names)
