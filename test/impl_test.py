@@ -37,5 +37,25 @@ def impl():
     return Implementation
 
 
+@pytest.fixture()
+def impl_with_proto():
+    class Stringer(Protocol):
+        def string(self) -> str:
+            pass
+
+    class Implementation:
+        def __init__(self, stringer: Stringer) -> None:
+            self._stringer = stringer
+
+        def provide_stringer(self) -> Stringer:
+            return self._stringer
+
+    return Implementation
+
+
 def test_protocol_returning_protocol(protocol, impl):
     assert isimplementation(impl, protocol)
+
+
+def test_impl_with_proto_return(protocol, impl_with_proto):
+    assert isimplementation(impl_with_proto, protocol)
