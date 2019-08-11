@@ -1,10 +1,10 @@
 from inspect import isfunction
-from typing import Any, get_type_hints
+from typing import Type, Optional, get_type_hints
 
-from typing_extensions import _get_protocol_attrs  # type: ignore
+from typing_extensions import Protocol, _get_protocol_attrs  # type: ignore
 
 
-def isimplementation(cls_: Any, proto: Any) -> bool:
+def isimplementation(cls_: Optional[Type], proto: Type) -> bool:
     """
     `isimplementation` checks to see if a provided class definition implement a provided Protocol definition.
 
@@ -21,6 +21,9 @@ def isimplementation(cls_: Any, proto: Any) -> bool:
         Returns whether or not the provided class definition is a valid
         implementation of the provided Protocol.
     """
+    if cls_ is None:
+        return False
+
     proto_annotations = get_type_hints(proto)
     cls_annotations = get_type_hints(cls_)
 
@@ -42,6 +45,12 @@ def isimplementation(cls_: Any, proto: Any) -> bool:
                 cls_signature = get_type_hints(cls_concrete)
             except AttributeError:
                 return False
+
+            if issubclass(proto_signature.get("return"), Protocol):  # type: ignore
+                proto_return: Type = proto_signature["return"]
+                cls_return: Optional[Type] = cls_signature.get("return")
+                if isimplementation(cls_return, proto_return):
+                    cls_signature["return"] = proto_signature["return"]
 
             if proto_signature != cls_signature:
                 return False
