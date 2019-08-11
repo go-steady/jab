@@ -1,4 +1,5 @@
-from typing_extensions import Protocol
+from typing import overload, Union, List
+from typing_extensions import Protocol, final
 
 import pytest
 
@@ -12,7 +13,7 @@ def protocol():
             pass
 
     class StringerProvider(Protocol):
-        def provide_stringer(self) -> Stringer:
+        def provide_stringer(self, ending: str) -> Stringer:
             pass
 
     return StringerProvider
@@ -31,10 +32,14 @@ def impl():
         def __init__(self, stringer: StringerImpl) -> None:
             self._stringer = stringer
 
-        def provide_stringer(self) -> StringerImpl:
+        def provide_stringer(self, ending: str) -> StringerImpl:
             return self._stringer
 
     return Implementation
+
+
+def test_protocol_returning_protocol(protocol, impl):
+    assert isimplementation(impl, protocol)
 
 
 @pytest.fixture()
@@ -47,15 +52,51 @@ def impl_with_proto():
         def __init__(self, stringer: Stringer) -> None:
             self._stringer = stringer
 
-        def provide_stringer(self) -> Stringer:
+        def provide_stringer(self, ending: str) -> Stringer:
             return self._stringer
 
     return Implementation
 
 
-def test_protocol_returning_protocol(protocol, impl):
-    assert isimplementation(impl, protocol)
-
-
 def test_impl_with_proto_return(protocol, impl_with_proto):
     assert isimplementation(impl_with_proto, protocol)
+
+
+@pytest.fixture()
+def overloaded():
+    class Namer:
+        def __init__(self, name) -> None:
+            self._name = name
+
+        def name(self) -> str:
+            return self._name
+
+    class Overloaded:
+        def __init__(self) -> None:
+            pass
+
+        @overload
+        def names(self, namers: List[Namer]) -> List[str]:
+            pass
+
+        @overload  # noqa: F811
+        def names(self, namers: Namer) -> str:
+            pass
+
+        @final  # noqa: F811
+        def names(self, namers):
+            if isinstance(namers, Namer):
+                return namers.name()
+
+            return [x.name() for x in namers]
+
+    class Names(Protocol):
+        def names(self, namers: Namer) -> str:
+            pass
+
+    return (Overloaded, Names)
+
+
+def test_overloaded(overloaded):
+    Overloaded, Names = overloaded
+    assert isimplementation(Overloaded, Names)
