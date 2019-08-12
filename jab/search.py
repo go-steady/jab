@@ -1,5 +1,5 @@
 from inspect import isfunction
-from typing import Type, Optional, get_type_hints, Callable, Any
+from typing import Type, Optional, get_type_hints, Callable, Any, Union
 
 from typing_extensions import Protocol, _get_protocol_attrs  # type: ignore
 
@@ -65,7 +65,24 @@ def func_satisfies(impl: Callable[..., Any], proto: Callable[..., Any]) -> bool:
             impl_signature["return"] = proto_signature["return"]
 
     for param, proto_type in proto_signature.items():
-        impl_type = impl_signature.get(param)
-        print(param, proto_type, impl_type)
+        try:
+            impl_type = impl_signature[param]
+        except KeyError:
+            return False
 
-    return proto_signature == impl_signature
+        try:
+            # Handle the case in which the Implementation
+            # implements a satisfactory method with Union
+            # types
+            if impl_type.__origin__ is Union:
+                if proto_type not in impl_type.__args__:
+                    return False
+
+                continue
+        except AttributeError:
+            pass
+
+        if proto_type != impl_type:
+            return False
+
+    return True
