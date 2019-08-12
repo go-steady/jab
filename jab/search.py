@@ -4,6 +4,10 @@ from typing import Type, Optional, get_type_hints, Callable, Any, Union
 from typing_extensions import Protocol, _get_protocol_attrs  # type: ignore
 
 
+class ReturnedUnionType(Exception):
+    pass
+
+
 def isimplementation(cls_: Optional[Type[Any]], proto: Type[Any]) -> bool:
     """
     `isimplementation` checks to see if a provided class definition implement a provided Protocol definition.
@@ -77,6 +81,13 @@ def func_satisfies(impl: Callable[..., Any], proto: Callable[..., Any]) -> bool:
             if impl_type.__origin__ is Union:
                 if proto_type not in impl_type.__args__:
                     return False
+
+                if param == "return":
+                    raise ReturnedUnionType(
+                        f"Returned Union type found in {impl} implementation of {proto}. "
+                        + f"Desired type {proto_type} is present in {impl_type} but jab cannot determine"
+                        + f"if the desired type will be returned from defined input."
+                    )
 
                 continue
         except AttributeError:

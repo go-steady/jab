@@ -3,7 +3,7 @@ from typing_extensions import Protocol, final
 
 import pytest
 
-from jab.search import isimplementation
+from jab.search import isimplementation, ReturnedUnionType
 
 
 @pytest.fixture()
@@ -99,7 +99,9 @@ def overloaded():
 
 def test_good_overloaded(overloaded):
     Overloaded, Names = overloaded
-    assert isimplementation(Overloaded, Names)
+
+    with pytest.raises(ReturnedUnionType):
+        isimplementation(Overloaded, Names)
 
 
 @pytest.fixture()
@@ -139,4 +141,6 @@ def bad_overloaded():
 
 def test_bad_overloaded(bad_overloaded):
     Overloaded, Names = bad_overloaded
-    assert not isimplementation(Overloaded, Names)
+
+    with pytest.raises(ReturnedUnionType):
+        isimplementation(Overloaded, Names)
