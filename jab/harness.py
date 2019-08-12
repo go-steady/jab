@@ -47,11 +47,11 @@ class Harness:
         pass  # pragma: no cover
 
     @overload  # noqa: F811
-    def inspect(self, arg: Union[Type, Callable]) -> Provided:
+    def inspect(self, arg: Union[Type[Any], Callable[..., Any]]) -> Provided:
         pass  # pragma: no cover
 
     def inspect(  # noqa: F811
-        self, arg: Optional[Union[Type, Callable]] = None
+        self, arg: Optional[Union[Type[Any], Callable[..., Any]]] = None
     ) -> Union[List[Provided], Provided]:
         """
         `inspect` allows for introspection of the Harness's environment.
@@ -483,7 +483,7 @@ class Harness:
         self._loop.run_until_complete(self._on_stop())
         self._loop.close()
 
-    def asgi(self, scope: dict) -> Handler:
+    def asgi(self, scope: Dict[str, str]) -> Handler:
 
         if scope.get("type") == "lifespan":
             return self._asgi_lifespan
@@ -530,13 +530,13 @@ class Harness:
                 self._loop.close()
                 return
 
-    def _asgi_http(self, scope: dict) -> Handler:
+    def _asgi_http(self, scope: Dict[str, str]) -> Handler:
         async def handler(receive: Receive, send: Send) -> None:
             await self._asgi_handler.asgi(scope, receive, send)
 
         return handler
 
-    def _asgi_ws(self, scope: dict) -> Handler:
+    def _asgi_ws(self, scope: Dict[str, str]) -> Handler:
         async def handler(receive: Receive, send: Send) -> None:
             await self._asgi_handler.asgi(scope, receive, send)
 

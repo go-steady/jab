@@ -28,7 +28,7 @@ jobs:
       - run:
           name: run mypy
           command: |
-            pipenv run mypy jab/ --ignore-missing-imports
+            pipenv run mypy jab/ --ignore-missing-imports --strict
 
       - run:
           name: ensure black format
