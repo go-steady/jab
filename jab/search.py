@@ -1,5 +1,5 @@
 from inspect import isfunction
-from typing import Type, Optional, get_type_hints, Callable, Any, Union
+from typing import Type, get_type_hints, Callable, Any, Union
 
 from typing_extensions import Protocol, _get_protocol_attrs  # type: ignore
 
@@ -8,7 +8,7 @@ class ReturnedUnionType(Exception):
     pass
 
 
-def isimplementation(cls_: Optional[Type[Any]], proto: Type[Any]) -> bool:
+def isimplementation(cls_: Type[Any], proto: Type[Any]) -> bool:
     """
     `isimplementation` checks to see if a provided class definition implement a provided Protocol definition.
 
@@ -25,9 +25,6 @@ def isimplementation(cls_: Optional[Type[Any]], proto: Type[Any]) -> bool:
         Returns whether or not the provided class definition is a valid
         implementation of the provided Protocol.
     """
-    if cls_ is None:
-        return False
-
     proto_annotations = get_type_hints(proto)
     cls_annotations = get_type_hints(cls_)
 
@@ -45,11 +42,9 @@ def isimplementation(cls_: Optional[Type[Any]], proto: Type[Any]) -> bool:
         if isfunction(proto_concrete):
             if not func_satisfies(cls_concrete, proto_concrete):
                 return False
-
-            continue
-
-        if cls_concrete != proto_concrete:
-            return False
+        else:
+            if cls_concrete != proto_concrete:
+                return False
 
     return True
 
@@ -59,14 +54,25 @@ def func_satisfies(impl: Callable[..., Any], proto: Callable[..., Any]) -> bool:
 
     try:
         impl_signature = get_type_hints(impl)
-    except AttributeError:
+    except TypeError:
         return False
 
-    if issubclass(proto_signature.get("return"), Protocol):  # type: ignore
-        proto_return: Type[Any] = proto_signature["return"]
-        cls_return: Optional[Type[Any]] = impl_signature.get("return")
-        if isimplementation(cls_return, proto_return):
-            impl_signature["return"] = proto_signature["return"]
+    try:
+        if issubclass(proto_signature.get("return"), Protocol):  # type: ignore
+            proto_return: Type[Any] = proto_signature["return"]
+
+            try:
+                cls_return: Type[Any] = impl_signature["return"]
+            except KeyError:
+                return False
+
+            if isimplementation(cls_return, proto_return):
+                impl_signature["return"] = proto_signature["return"]
+    except TypeError:
+        # There's a chance that the return signature of proto
+        # might trigger a TypeError, if that's the case it's safe
+        # to ignore it and continue
+        pass
 
     for param, proto_type in proto_signature.items():
         try:

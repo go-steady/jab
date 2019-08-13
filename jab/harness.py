@@ -21,7 +21,7 @@ from jab.inspect import Dependency, Provided
 from jab.logging import DefaultJabLogger, Logger
 from jab.search import isimplementation
 
-DEFAULT_LOGGER = "DEFAULT LOGGER"
+DEFAULT_LOGGER = "DEFAULT LOGGER"  # pragma: no mutate
 
 
 class Harness:
