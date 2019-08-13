@@ -18,6 +18,7 @@ gunicorn = "*"
 mypy = "*"
 flake8 = "*"
 pre-commit = "*"
+mutmut = "*"
 
 [requires]
 python_version = "3.7"
