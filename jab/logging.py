@@ -26,7 +26,7 @@ class DefaultJabLogger:
         self._log = logging.getLogger(__name__)
         ch = logging.StreamHandler()
         ch.setLevel(logging.DEBUG)
-        formatter = logging.Formatter("[%(asctime)s] - %(levelname)s - %(message)s")
+        formatter = logging.Formatter("[%(asctime)s] - %(levelname)s - %(message)s")  # pragma: no mutate
         ch.setFormatter(formatter)
         self._log.addHandler(ch)
 
