@@ -42,11 +42,9 @@ def isimplementation(cls_: Type[Any], proto: Type[Any]) -> bool:
         if isfunction(proto_concrete):
             if not func_satisfies(cls_concrete, proto_concrete):
                 return False
-
-            continue
-
-        if cls_concrete != proto_concrete:
-            return False
+        else:
+            if cls_concrete != proto_concrete:
+                return False
 
     return True
 
