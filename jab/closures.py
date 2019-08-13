@@ -1,7 +1,7 @@
 from typing import Callable, Type, TypeVar
 
 
-T = TypeVar("T")
+T = TypeVar("T")  # pragma: no mutate
 
 
 def closure(cls_: Type[T]) -> Type[T]:
