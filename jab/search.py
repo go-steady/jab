@@ -59,16 +59,22 @@ def func_satisfies(impl: Callable[..., Any], proto: Callable[..., Any]) -> bool:
     except AttributeError:
         return False
 
-    if issubclass(proto_signature.get("return"), Protocol):  # type: ignore
-        proto_return: Type[Any] = proto_signature["return"]
+    try:
+        if issubclass(proto_signature.get("return"), Protocol):  # type: ignore
+            proto_return: Type[Any] = proto_signature["return"]
 
-        try:
-            cls_return: Type[Any] = impl_signature["return"]
-        except KeyError:
-            return False
+            try:
+                cls_return: Type[Any] = impl_signature["return"]
+            except KeyError:
+                return False
 
-        if isimplementation(cls_return, proto_return):
-            impl_signature["return"] = proto_signature["return"]
+            if isimplementation(cls_return, proto_return):
+                impl_signature["return"] = proto_signature["return"]
+    except TypeError:
+        # There's a chance that the return signature of proto
+        # might trigger a TypeError, if that's the case it's safe
+        # to ignore it and continue
+        pass
 
     for param, proto_type in proto_signature.items():
         try:

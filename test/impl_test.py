@@ -170,3 +170,24 @@ def test_missing_return(missing_return):
     MissingReturn, Names = missing_return
 
     assert not isimplementation(MissingReturn, Names)
+
+
+@pytest.fixture()
+def not_an_impl():
+    class Impl:
+        def __init__(self) -> None:
+            pass
+
+        def meth(self, n: int) -> float:
+            return float(n ** 2)
+
+    class Proto(Protocol):
+        def meth(self, x: str) -> List[str]:
+            pass
+
+    return (Impl, Proto)
+
+
+def test_not_an_impl(not_an_impl):
+    Impl, Proto = not_an_impl
+    assert not isimplementation(Impl, Proto)
