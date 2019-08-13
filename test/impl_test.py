@@ -191,3 +191,13 @@ def not_an_impl():
 def test_not_an_impl(not_an_impl):
     Impl, Proto = not_an_impl
     assert not isimplementation(Impl, Proto)
+
+
+def test_func_satisfies_baseline(not_an_impl):
+    _, Proto = not_an_impl
+
+    class Empty:
+        def __init__(self):
+            pass
+
+    assert not isimplementation(Empty, Proto)

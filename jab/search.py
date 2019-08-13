@@ -56,7 +56,7 @@ def func_satisfies(impl: Callable[..., Any], proto: Callable[..., Any]) -> bool:
 
     try:
         impl_signature = get_type_hints(impl)
-    except AttributeError:
+    except TypeError:
         return False
 
     try:
