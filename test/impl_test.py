@@ -144,3 +144,29 @@ def test_bad_overloaded(bad_overloaded):
 
     with pytest.raises(ReturnedUnionType):
         isimplementation(Overloaded, Names)
+
+
+@pytest.fixture()
+def missing_return():
+    class MissingReturn:
+        def __init__(self) -> None:
+            pass
+
+        def names(self, namers: str):
+            return "name"
+
+    class Other(Protocol):
+        def other(self) -> int:
+            pass
+
+    class Names(Protocol):
+        def names(self, namers: str) -> Other:
+            pass
+
+    return (MissingReturn, Names)
+
+
+def test_missing_return(missing_return):
+    MissingReturn, Names = missing_return
+
+    assert not isimplementation(MissingReturn, Names)
