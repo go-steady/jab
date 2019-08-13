@@ -36,6 +36,11 @@ jobs:
             pipenv run black -l 110 . --check
 
       - run:
+        name: run mutation tests
+        command: |
+          pipenv run mutmut run
+
+      - run:
           name: code coverage
           command: |
             pipenv run python -m pytest --cov-report=xml --cov=jab/ test/
